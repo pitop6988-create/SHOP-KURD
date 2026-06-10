@@ -90,13 +90,6 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
               Login
             </button>
           </div>
-          
-          <button 
-            onClick={onGuest}
-            className="mt-12 text-white/50 text-sm font-medium hover:text-white transition-colors underline underline-offset-4"
-          >
-            Continue as Guest
-          </button>
         </div>
       </div>
     );
