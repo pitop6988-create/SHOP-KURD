@@ -14,12 +14,24 @@ export function ProductDetail({
 }) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const handleAdd = () => {
     onAddToCart(product, quantity);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
+
+  if (isFullScreen) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center pt-safe pb-safe" onClick={() => setIsFullScreen(false)}>
+        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
+        <button className="absolute top-6 right-6 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white font-bold backdrop-blur">
+           X
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] w-full absolute top-0 left-0 z-20 overflow-hidden">
@@ -31,8 +43,11 @@ export function ProductDetail({
       </div>
 
       <div className="flex-1 flex flex-col overflow-y-auto">
-        <div className="bg-white w-full aspect-square flex items-center justify-center p-8 border-b border-slate-50">
-          <img src={product.imageUrl} alt={product.name} className="object-contain w-full h-full max-w-[200px] mix-blend-multiply" />
+        <div 
+          className="bg-white w-full aspect-square flex items-center justify-center p-8 border-b border-slate-50 cursor-pointer"
+          onClick={() => setIsFullScreen(true)}
+        >
+          <img src={product.imageUrl} alt={product.name} className="object-contain w-full h-full max-w-[200px] mix-blend-multiply transition-transform hover:scale-105" />
         </div>
 
         <div className="p-6 bg-white flex-1 flex flex-col shadow-[0_-8px_20px_rgba(0,0,0,0.02)]">

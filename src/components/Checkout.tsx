@@ -5,6 +5,22 @@ import { formatPrice } from '../data';
 export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onSuccess: () => void; total: number }) {
   const [view, setView] = useState<'methods' | 'add_method'>('methods');
   const [selectedMethod, setSelectedMethod] = useState('mastercard');
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<{code: string, value: string} | null>(null);
+
+  const applyCode = () => {
+    try {
+      const savedCodes = JSON.parse(localStorage.getItem('payment_codes') || '[]');
+      const found = savedCodes.find((c: any) => c.code === discountCode.toUpperCase());
+      if (found) {
+        setAppliedDiscount(found);
+      } else {
+        alert('Invalid or expired code');
+      }
+    } catch {
+      alert('Error applying code');
+    }
+  };
 
   const methods = [
     { id: 'mastercard', name: 'Master Card', logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Mastercard_2019_logo.svg' },
@@ -135,20 +151,44 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
             <span>Shipping Fee</span>
             <span className="text-slate-800">{formatPrice(shippingFee, 'IQD')}</span>
           </div>
+          {appliedDiscount && (
+            <div className="flex justify-between items-center text-sm font-medium text-green-600">
+              <span>Discount ({appliedDiscount.code})</span>
+              <span>- {appliedDiscount.value}</span>
+            </div>
+          )}
           <div className="h-px bg-slate-100 w-full my-2"></div>
           <div className="flex justify-between items-center text-[15px] font-bold text-slate-800">
             <span>Total</span>
             <span>{formatPrice(total + shippingFee, 'IQD')}</span>
           </div>
         </div>
+
+        <div className="flex items-center space-x-2 mb-8">
+          <input 
+            type="text" 
+            value={discountCode}
+            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+            placeholder="Enter Code"
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b] uppercase"
+          />
+          <button onClick={applyCode} className="px-4 py-3 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
+            Add Code
+          </button>
+        </div>
       </div>
 
       <div className="absolute bottom-0 w-full p-6 bg-white shrink-0 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.05)]">
         <button 
           onClick={onSuccess}
-          className="w-full py-4 bg-[#4ca14b] text-white rounded-lg font-medium shadow-md shadow-[#4ca14b]/30 hover:bg-[#408a3f] transition-colors"
+          disabled={!appliedDiscount}
+          className={`w-full py-4 rounded-lg font-medium shadow-md transition-all ${
+            appliedDiscount 
+              ? 'bg-[#4ca14b] text-white shadow-[#4ca14b]/30 hover:bg-[#408a3f]' 
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+          }`}
         >
-          Add Payment Method
+          Pay Now
         </button>
       </div>
     </div>

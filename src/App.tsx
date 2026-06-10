@@ -19,32 +19,84 @@ import { products as initialProducts } from './data';
 import { auth } from './firebase';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'register'|'services'|'cart'|'orders'|'settings'|'checkout'|'order_success'|'admin'>('register');
+  const [currentScreen, setCurrentScreen] = useState<'loading'|'register'|'services'|'cart'|'orders'|'settings'|'checkout'|'order_success'|'admin'>('loading');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('shopping_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
+
+  const [currentUserKey, setCurrentUserKey] = useState<string>('guest_cart');
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      const newKey = user ? `shopping_cart_${user.uid}` : 'guest_cart';
+      setCurrentUserKey(newKey);
+      
+      setCart(() => {
+        try {
+          const saved = localStorage.getItem(newKey);
+          return saved ? JSON.parse(saved) : [];
+        } catch {
+          return [];
+        }
+      });
+      // ... original inner code ...
+      if (user) {
+        if (currentScreen === 'loading' || currentScreen === 'register') {
+          setCurrentScreen('services');
+        }
+      } else {
+        const isGuest = localStorage.getItem('isGuest') === 'true';
+        if (isGuest) {
+          if (currentScreen === 'loading' || currentScreen === 'register') {
+            setCurrentScreen('services');
+          }
+        } else {
+          if (currentScreen !== 'register') {
+            setCurrentScreen('register');
+          }
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [currentScreen]);
+
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    if (currentUserKey) {
+      localStorage.setItem(currentUserKey, JSON.stringify(cart));
     }
+  }, [cart, currentUserKey]);
+
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('products_list');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return initialProducts;
   });
 
   useEffect(() => {
-    localStorage.setItem('shopping_cart', JSON.stringify(cart));
-  }, [cart]);
+    localStorage.setItem('products_list', JSON.stringify(products));
+  }, [products]);
+  const [ordersList, setOrdersList] = useState<Order[]>(() => {
+    try {
+      const saved = localStorage.getItem('orders_list');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      {
+        id: '12A394',
+        customerName: 'Popoola Opeyemi',
+        items: [{ product: initialProducts[0], quantity: 2 }],
+        total: initialProducts[0].price * 2,
+        status: 'pending',
+        date: new Date().toISOString()
+      }
+    ];
+  });
 
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [ordersList, setOrdersList] = useState<Order[]>([
-    {
-      id: '12a394',
-      customerName: 'Popoola Opeyemi',
-      items: [{ product: initialProducts[0], quantity: 2 }],
-      total: initialProducts[0].price * 2,
-      status: 'pending',
-      date: new Date().toISOString()
-    }
-  ]);
+  useEffect(() => {
+    localStorage.setItem('orders_list', JSON.stringify(ordersList));
+  }, [ordersList]);
 
   const handleAddToCart = (product: Product, quantity: number) => {
     setCart(prev => {
@@ -75,11 +127,24 @@ export default function App() {
     <div className="bg-neutral-900 min-h-screen flex items-center justify-center p-0 md:p-4 font-sans text-slate-900 selection:bg-[#4ca14b]/20">
       <div className="w-full max-w-md h-[100dvh] md:h-[850px] bg-white md:rounded-3xl shadow-2xl relative overflow-hidden flex flex-col ring-1 ring-white/10 md:ring-slate-900/5">
         
-          {currentScreen === 'register' && (
-              <Register onComplete={() => setCurrentScreen('services')} />
+          {currentScreen === 'loading' && (
+            <div className="flex-1 flex flex-col items-center justify-center h-full">
+              <div className="w-8 h-8 border-4 border-[#4ca14b] border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-slate-500 font-medium">Loading...</p>
+            </div>
           )}
 
-          {currentScreen !== 'register' && (
+          {currentScreen === 'register' && (
+              <Register 
+                onComplete={() => setCurrentScreen('services')} 
+                onGuest={() => {
+                  localStorage.setItem('isGuest', 'true');
+                  setCurrentScreen('services');
+                }}
+              />
+          )}
+
+          {currentScreen !== 'register' && currentScreen !== 'loading' && (
               <div className="flex flex-col h-full relative">
                   {selectedProduct ? (
                       <ProductDetail 
@@ -131,16 +196,28 @@ export default function App() {
                           }} />
                         )}
                         {currentScreen === 'orders' && (
-                          <Orders onBack={() => setCurrentScreen('services')} />
+                          <Orders 
+                            onBack={() => setCurrentScreen('services')} 
+                            orders={ordersList.filter(o => o.customerName === (auth.currentUser?.email || 'Guest User'))}
+                          />
                         )}
                         {currentScreen === 'settings' && (
-                          <Settings onNavigateToAdmin={() => setCurrentScreen('admin')} />
+                          <Settings 
+                            onNavigateToAdmin={() => setCurrentScreen('admin')} 
+                            onLogout={async () => {
+                              localStorage.removeItem('isGuest');
+                              await auth.signOut();
+                              setCurrentScreen('register');
+                            }}
+                          />
                         )}
                         {currentScreen === 'admin' && (
                           <AdminDashboard 
                             onBack={() => setCurrentScreen('settings')} 
                             products={products}
                             onAddProduct={(p) => setProducts([...products, p])}
+                            onUpdateProduct={(p) => setProducts(products.map(pr => pr.id === p.id ? p : pr))}
+                            onDeleteProduct={(id) => setProducts(products.filter(pr => pr.id !== id))}
                             orders={ordersList}
                             onUpdateOrderStatus={(id, status) => setOrdersList(prev => prev.map(o => o.id === id ? { ...o, status } : o))}
                           />

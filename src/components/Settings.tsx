@@ -1,6 +1,10 @@
-import { ChevronRight, HeadphonesIcon, Moon, Globe, LogIn, Lock } from 'lucide-react';
+import { ChevronRight, HeadphonesIcon, Moon, Globe, LogIn, Lock, LogOut } from 'lucide-react';
+import { auth } from '../firebase';
+import { signOut } from 'firebase/auth';
 
-export function Settings({ onNavigateToAdmin }: { onNavigateToAdmin?: () => void }) {
+export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: () => void; onLogout?: () => void }) {
+  const isAdmin = auth.currentUser?.email === 'pitop6988@gmail.com';
+
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] w-full relative">
       <div className="pt-10 pb-4 flex justify-center items-center bg-white border-b border-slate-100 sticky top-0 z-10 shadow-sm">
@@ -50,17 +54,32 @@ export function Settings({ onNavigateToAdmin }: { onNavigateToAdmin?: () => void
             <ChevronRight size={20} className="text-slate-300" />
           </button>
 
+          {isAdmin && (
+            <button 
+              onClick={onNavigateToAdmin}
+              className="w-full flex items-center justify-between p-4 border-t border-slate-100 hover:bg-slate-50 transition-colors bg-amber-50/50"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                  <Lock size={20} />
+                </div>
+                <span className="font-medium text-slate-700 text-base">Admin Dashboard</span>
+              </div>
+              <ChevronRight size={20} className="text-slate-300" />
+            </button>
+          )}
+
           <button 
-            onClick={onNavigateToAdmin}
-            className="w-full flex items-center justify-between p-4 border-t border-slate-100 hover:bg-slate-50 transition-colors bg-amber-50/50"
+            onClick={onLogout}
+            className="w-full flex items-center justify-between p-4 border-t border-slate-100 hover:bg-red-50 transition-colors"
           >
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-                <Lock size={20} />
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
+                <LogOut size={20} />
               </div>
-              <span className="font-medium text-slate-700 text-base">Admin Dashboard</span>
+              <span className="font-medium text-red-600 text-base">Log Out</span>
             </div>
-            <ChevronRight size={20} className="text-slate-300" />
+            <ChevronRight size={20} className="text-slate-300 opacity-50" />
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation } from 'lucide-react';
+import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin } from 'lucide-react';
 import { Product, Order } from '../types';
 import { formatPrice } from '../data';
 
@@ -7,40 +7,86 @@ export function AdminDashboard({
   onBack, 
   products,
   onAddProduct,
+  onUpdateProduct,
+  onDeleteProduct,
   orders,
   onUpdateOrderStatus
 }: { 
   onBack: () => void;
   products: Product[];
   onAddProduct: (p: Product) => void;
+  onUpdateProduct?: (p: Product) => void;
+  onDeleteProduct?: (id: string) => void;
   orders: Order[];
   onUpdateOrderStatus: (orderId: string, status: Order['status']) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('orders');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'codes'>('orders');
   
   // New Product Form State
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemImage, setNewItemImage] = useState('');
+  
+  // Codes Tab State
+  const [codes, setCodes] = useState<{code: string, value: string}[]>(() => {
+    try { return JSON.parse(localStorage.getItem('payment_codes') || '[]'); } catch { return []; }
+  });
+  const [newCodeName, setNewCodeName] = useState('');
+  const [newCodeValue, setNewCodeValue] = useState('');
+
+  const saveCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCodeName || !newCodeValue) return;
+    const updatedCodes = [...codes, { code: newCodeName, value: newCodeValue }];
+    setCodes(updatedCodes);
+    localStorage.setItem('payment_codes', JSON.stringify(updatedCodes));
+    setNewCodeName('');
+    setNewCodeValue('');
+  };
+
+  const deleteCode = (index: number) => {
+    const updatedCodes = codes.filter((_, i) => i !== index);
+    setCodes(updatedCodes);
+    localStorage.setItem('payment_codes', JSON.stringify(updatedCodes));
+  };
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName || !newItemPrice || !newItemImage) return;
 
-    const newProduct: Product = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newItemName,
-      price: parseInt(newItemPrice) || 0,
-      currency: 'IQD',
-      imageUrl: newItemImage
-    };
+    if (editingProduct && onUpdateProduct) {
+      onUpdateProduct({
+        ...editingProduct,
+        name: newItemName,
+        price: parseInt(newItemPrice) || 0,
+        imageUrl: newItemImage
+      });
+    } else {
+      const newProduct: Product = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: newItemName,
+        price: parseInt(newItemPrice) || 0,
+        currency: 'IQD',
+        imageUrl: newItemImage
+      };
+      onAddProduct(newProduct);
+    }
 
-    onAddProduct(newProduct);
     setNewItemName('');
     setNewItemPrice('');
     setNewItemImage('');
+    setEditingProduct(null);
     setShowAddForm(false);
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setNewItemName(product.name);
+    setNewItemPrice(product.price.toString());
+    setNewItemImage(product.imageUrl);
+    setShowAddForm(true);
   };
 
   return (
@@ -65,6 +111,12 @@ export function AdminDashboard({
         >
           Products
         </button>
+        <button 
+          onClick={() => setActiveTab('codes')}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'codes' ? 'border-[#4ca14b] text-[#4ca14b]' : 'border-transparent text-slate-500'}`}
+        >
+          Codes
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto w-full relative">
@@ -80,8 +132,9 @@ export function AdminDashboard({
                       <h3 className="font-bold text-slate-900 text-lg">Order # {order.id.toUpperCase()}</h3>
                       <p className="text-sm font-medium text-[#4ca14b] mt-0.5">{order.customerName}</p>
                     </div>
-                    <span className="text-sm font-medium text-slate-400 shrink-0 ml-2">
+                    <span className="text-sm font-medium text-slate-400 shrink-0 ml-4 text-right">
                       {new Date(order.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                      <div className="text-xs mt-0.5">{new Date(order.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
                     </span>
                   </div>
 
@@ -127,11 +180,6 @@ export function AdminDashboard({
                     >
                       Reject
                     </button>
-                    <button 
-                      className="flex-1 py-1.5 bg-white border border-slate-800 rounded-full text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors"
-                    >
-                      Details
-                    </button>
                   </div>
                 </div>
               ))
@@ -153,12 +201,20 @@ export function AdminDashboard({
                 <div className="space-y-4 pb-20">
                   {products.map(product => (
                      <div key={product.id} className="bg-white rounded-xl border border-slate-100 shadow-sm flex items-center p-3">
-                        <div className="w-16 h-16 bg-slate-50 rounded-lg flex items-center justify-center p-1 mr-4 shrink-0">
+                        <div className="w-16 h-16 bg-slate-50 rounded-lg flex items-center justify-center p-1 mr-4 shrink-0 overflow-hidden">
                           <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
                         </div>
                         <div className="flex-1">
                           <h3 className="font-medium text-slate-800 text-sm leading-tight mb-1">{product.name}</h3>
                           <p className="text-orange-500 font-bold text-sm">{formatPrice(product.price, product.currency)}</p>
+                        </div>
+                        <div className="flex space-x-2 shrink-0 ml-2">
+                          <button onClick={() => handleEdit(product)} className="w-8 h-8 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-blue-500">
+                             <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => onDeleteProduct && onDeleteProduct(product.id)} className="w-8 h-8 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-red-500">
+                             <Trash2 size={16} />
+                          </button>
                         </div>
                      </div>
                   ))}
@@ -167,8 +223,14 @@ export function AdminDashboard({
             ) : (
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-medium text-slate-800">Add New Item</h2>
-                  <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600">
+                  <h2 className="font-medium text-slate-800">{editingProduct ? 'Edit Item' : 'Add New Item'}</h2>
+                  <button onClick={() => {
+                    setShowAddForm(false);
+                    setEditingProduct(null);
+                    setNewItemName('');
+                    setNewItemPrice('');
+                    setNewItemImage('');
+                  }} className="text-slate-400 hover:text-slate-600">
                     <X size={20} />
                   </button>
                 </div>
@@ -227,11 +289,66 @@ export function AdminDashboard({
                     type="submit"
                     className="w-full bg-[#4ca14b] hover:bg-[#408a3f] text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm mt-4"
                   >
-                    Save Item
+                    {editingProduct ? 'Update Item' : 'Save Item'}
                   </button>
                 </form>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'codes' && (
+          <div className="p-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+              <h2 className="font-medium text-slate-800 mb-4">Create Code</h2>
+              <form onSubmit={saveCode} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Code</label>
+                  <input 
+                    type="text" 
+                    value={newCodeName}
+                    onChange={(e) => setNewCodeName(e.target.value.toUpperCase())}
+                    placeholder="e.g. DISCOUNT10"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b] uppercase"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Value / Description</label>
+                  <input 
+                    type="text" 
+                    value={newCodeValue}
+                    onChange={(e) => setNewCodeValue(e.target.value)}
+                    placeholder="e.g. 10% Off"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b]"
+                    required
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full bg-[#4ca14b] text-white font-bold py-3.5 rounded-xl transition-all shadow-sm"
+                >
+                  Save Code
+                </button>
+              </form>
+            </div>
+            
+            <div className="space-y-4">
+               {codes.map((c, i) => (
+                 <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm flex items-center justify-between">
+                   <div>
+                     <p className="font-bold text-slate-800 tracking-wider bg-slate-100 px-2 rounded">{c.code}</p>
+                     <p className="text-sm text-slate-500 mt-1">{c.value}</p>
+                   </div>
+                   <button onClick={() => deleteCode(i)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                     <Trash2 size={20} />
+                   </button>
+                 </div>
+               ))}
+               {codes.length === 0 && (
+                 <p className="text-center text-slate-400 py-10">No codes created yet.</p>
+               )}
+            </div>
           </div>
         )}
       </div>

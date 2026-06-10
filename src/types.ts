@@ -18,4 +18,6 @@ export interface Order {
   total: number;
   status: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
   date: string;
+  address?: string;
+  phone?: string;
 }
