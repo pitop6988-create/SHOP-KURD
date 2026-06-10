@@ -18,8 +18,8 @@ function RouteDisplay({ origin, destination }: {
     polylinesRef.current.forEach(p => p.setMap(null));
 
     routesLib.Route.computeRoutes({
-      origin: { location: { latLng: origin } },
-      destination: { location: { latLng: destination } },
+      origin: origin,
+      destination: destination,
       travelMode: 'DRIVING',
       fields: ['path', 'distanceMeters', 'durationMillis', 'viewport'],
     }).then(({ routes }) => {
@@ -30,7 +30,7 @@ function RouteDisplay({ origin, destination }: {
           p.setMap(map);
         });
         polylinesRef.current = newPolylines;
-        if (routes[0].viewport) map.fitBounds(routes[0].viewport, { padding: 40 });
+        if (routes[0].viewport) map.fitBounds(routes[0].viewport, 40);
       }
     });
 

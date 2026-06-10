@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 
 export function Register({ onComplete }: { onComplete: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -22,7 +22,25 @@ export function Register({ onComplete }: { onComplete: () => void }) {
       onComplete();
     } catch (error: any) {
       console.error("Auth error:", error);
-      alert(error.message || "Authentication failed. Please try again.");
+      if (error.code === 'auth/invalid-credential') {
+        alert("Invalid email or password. Please check your credentials or register if you don't have an account.");
+      } else if (error.code === 'auth/email-already-in-use') {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          onComplete();
+        } catch (signInError: any) {
+          if (signInError.code === 'auth/invalid-credential') {
+             alert("This email is already registered and the password you entered is incorrect. Please try again.");
+          } else {
+             alert(signInError.message || "Authentication failed. Please try again.");
+          }
+          setIsLogin(true);
+        }
+      } else if (error.code === 'auth/weak-password') {
+        alert("Password should be at least 6 characters.");
+      } else {
+        alert(error.message || "Authentication failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }

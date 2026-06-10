@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation } from 'lucide-react';
 import { Product, Order } from '../types';
 import { formatPrice } from '../data';
@@ -76,8 +76,11 @@ export function AdminDashboard({
               orders.map(order => (
                 <div key={order.id} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
                   <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-slate-900 text-lg">Order # {order.id.toUpperCase()}</h3>
-                    <span className="text-sm font-medium text-slate-400">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg">Order # {order.id.toUpperCase()}</h3>
+                      <p className="text-sm font-medium text-[#4ca14b] mt-0.5">{order.customerName}</p>
+                    </div>
+                    <span className="text-sm font-medium text-slate-400 shrink-0 ml-2">
                       {new Date(order.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                     </span>
                   </div>

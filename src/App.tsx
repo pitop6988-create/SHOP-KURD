@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Register } from './components/Register';
 import { Services } from './components/Services';
 import { ProductDetail } from './components/ProductDetail';
@@ -16,11 +16,24 @@ import { OrderSuccess } from './components/OrderSuccess';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Product, CartItem, Order } from './types';
 import { products as initialProducts } from './data';
+import { auth } from './firebase';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'register'|'services'|'cart'|'orders'|'settings'|'checkout'|'order_success'|'admin'>('register');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('shopping_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('shopping_cart', JSON.stringify(cart));
+  }, [cart]);
+
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [ordersList, setOrdersList] = useState<Order[]>([
     {
@@ -96,7 +109,18 @@ export default function App() {
                         {currentScreen === 'checkout' && (
                           <Checkout 
                             onBack={() => setCurrentScreen('cart')} 
-                            onSuccess={() => setCurrentScreen('order_success')}
+                            onSuccess={() => {
+                              const newOrder: Order = {
+                                id: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                                customerName: auth.currentUser?.email || 'Guest User',
+                                items: [...cart],
+                                total: cartTotal,
+                                status: 'pending',
+                                date: new Date().toISOString()
+                              };
+                              setOrdersList(prev => [newOrder, ...prev]);
+                              setCurrentScreen('order_success');
+                            }}
                             total={cartTotal} 
                           />
                         )}

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Store, ShoppingCart, ShoppingBag, Settings } from 'lucide-react';
 
 interface BottomNavProps {
