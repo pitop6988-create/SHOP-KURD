@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { ChevronLeft, Circle, CheckCircle2 } from 'lucide-react';
 import { formatPrice } from '../data';
+import { PromoCode } from '../types';
+import { useLanguage } from '../LanguageContext';
 
-export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onSuccess: () => void; total: number }) {
+export function Checkout({ onBack, onSuccess, total, codes }: { onBack: () => void; onSuccess: () => void; total: number; codes?: PromoCode[] }) {
   const [view, setView] = useState<'methods' | 'add_method'>('methods');
   const [selectedMethod, setSelectedMethod] = useState('mastercard');
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<{code: string, value: string} | null>(null);
+  const { t } = useLanguage();
 
   const applyCode = () => {
     try {
-      const savedCodes = JSON.parse(localStorage.getItem('payment_codes') || '[]');
-      const found = savedCodes.find((c: any) => c.code === discountCode.toUpperCase());
+      const savedCodes = codes || [];
+      const found = savedCodes.find((c) => c.code === discountCode.toUpperCase());
       if (found) {
         setAppliedDiscount(found);
       } else {
@@ -38,12 +41,12 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
           <button onClick={() => setView('methods')} className="w-8 h-8 rounded bg-[#4ca14b] text-white flex items-center justify-center mr-6">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="font-medium text-slate-800 text-lg">Add Payment Method</h1>
+          <h1 className="font-medium text-slate-800 text-lg">{t.addPaymentMethod}</h1>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 pt-6 pb-24 space-y-6">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-800">Card Name</label>
+            <label className="text-sm font-medium text-slate-800">{t.cardName}</label>
             <input 
               type="text" 
               defaultValue="Popoola Opeyemi" 
@@ -52,7 +55,7 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-800">Card Number</label>
+            <label className="text-sm font-medium text-slate-800">{t.cardNumber}</label>
             <div className="relative">
               <input 
                 type="text" 
@@ -65,7 +68,7 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
 
           <div className="flex space-x-4">
             <div className="flex-1 space-y-1">
-              <label className="text-sm font-medium text-slate-800">Expiration</label>
+              <label className="text-sm font-medium text-slate-800">{t.expiration}</label>
               <input 
                 type="text" 
                 defaultValue="09/26" 
@@ -73,7 +76,7 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
               />
             </div>
             <div className="flex-1 space-y-1">
-              <label className="text-sm font-medium text-slate-800">CVV</label>
+              <label className="text-sm font-medium text-slate-800">{t.cvv}</label>
               <input 
                 type="text" 
                 defaultValue="799" 
@@ -83,7 +86,7 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-800">Postal Code</label>
+            <label className="text-sm font-medium text-slate-800">{t.postalCode}</label>
             <input 
               type="text" 
               defaultValue="993483" 
@@ -97,7 +100,7 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
             onClick={onSuccess}
             className="w-full py-4 bg-[#4ca14b] hover:bg-[#408a3f] text-white rounded-lg font-medium shadow-md shadow-[#4ca14b]/30 transition-colors"
           >
-            Add Now
+            {t.addNow}
           </button>
         </div>
       </div>
@@ -110,7 +113,7 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
         <button onClick={onBack} className="w-8 h-8 rounded bg-[#4ca14b] text-white flex items-center justify-center mr-6">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="font-medium text-slate-800 text-lg">Payment Method</h1>
+        <h1 className="font-medium text-slate-800 text-lg">{t.paymentMethod}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pt-6 pb-24">
@@ -144,22 +147,22 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
 
         <div className="bg-white rounded-xl border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-6 mb-8 space-y-4">
           <div className="flex justify-between items-center text-sm font-medium text-slate-600">
-            <span>Cost Of Purchase</span>
+            <span>{t.costOfPurchase}</span>
             <span className="text-slate-800">{formatPrice(total, 'IQD')}</span>
           </div>
           <div className="flex justify-between items-center text-sm font-medium text-slate-600">
-            <span>Shipping Fee</span>
+            <span>{t.shippingFee}</span>
             <span className="text-slate-800">{formatPrice(shippingFee, 'IQD')}</span>
           </div>
           {appliedDiscount && (
             <div className="flex justify-between items-center text-sm font-medium text-green-600">
-              <span>Discount ({appliedDiscount.code})</span>
+              <span>{t.discount} ({appliedDiscount.code})</span>
               <span>- {appliedDiscount.value}</span>
             </div>
           )}
           <div className="h-px bg-slate-100 w-full my-2"></div>
           <div className="flex justify-between items-center text-[15px] font-bold text-slate-800">
-            <span>Total</span>
+            <span>{t.total}</span>
             <span>{formatPrice(total + shippingFee, 'IQD')}</span>
           </div>
         </div>
@@ -169,11 +172,11 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
             type="text" 
             value={discountCode}
             onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-            placeholder="Enter Code"
+            placeholder={t.enterCode}
             className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b] uppercase"
           />
           <button onClick={applyCode} className="px-4 py-3 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
-            Add Code
+            {t.addCode}
           </button>
         </div>
       </div>
@@ -188,7 +191,7 @@ export function Checkout({ onBack, onSuccess, total }: { onBack: () => void; onS
               : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
           }`}
         >
-          Pay Now
+          {t.payNow}
         </button>
       </div>
     </div>

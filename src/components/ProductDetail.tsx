@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Product } from '../types';
 import { formatPrice } from '../data';
 import { ChevronLeft, Plus, Minus, Check, ShoppingCart } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 export function ProductDetail({
   product,
@@ -15,6 +16,7 @@ export function ProductDetail({
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const { t } = useLanguage();
 
   const handleAdd = () => {
     onAddToCart(product, quantity);
@@ -58,8 +60,8 @@ export function ProductDetail({
              </div>
 
              <div className="mb-8 select-none">
-               <span className="text-slate-700 text-sm font-medium mb-1 block">Quantity</span>
-               <span className="text-xs text-slate-400 mb-3 block">Min: 1</span>
+               <span className="text-slate-700 text-sm font-medium mb-1 block">{t.quantity}</span>
+               <span className="text-xs text-slate-400 mb-3 block">{t.min}: 1</span>
                
                <div className="flex items-center space-x-4">
                  <button 
@@ -91,12 +93,12 @@ export function ProductDetail({
                {added ? (
                  <>
                    <Check size={20} />
-                   <span>Added to cart successfully</span>
+                   <span>{t.addedToCart}</span>
                  </>
                ) : (
                  <>
                    <ShoppingCart size={18} />
-                   <span>Add to cart</span>
+                   <span>{t.addToCart}</span>
                  </>
                )}
              </button>

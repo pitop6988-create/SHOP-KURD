@@ -1,5 +1,6 @@
 import React from 'react';
-import { Store, ShoppingCart, ShoppingBag, Settings } from 'lucide-react';
+import { Store, ShoppingCart, ShoppingBag, Settings as SettingsIcon } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 interface BottomNavProps {
   currentTab: string;
@@ -8,11 +9,12 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ currentTab, onTabChange, cartItemCount }: BottomNavProps) {
+  const { t } = useLanguage();
   return (
     <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-2 pb-6 px-2 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
       <NavItem 
         icon={<Store size={22} className={currentTab === 'services' ? 'fill-current' : ''} />} 
-        label="Services" 
+        label={t.services} 
         isActive={currentTab === 'services'} 
         onClick={() => onTabChange('services')} 
       />
@@ -27,19 +29,19 @@ export function BottomNav({ currentTab, onTabChange, cartItemCount }: BottomNavP
             )}
           </div>
         } 
-        label="Shopping Cart" 
+        label={t.cart} 
         isActive={currentTab === 'cart'} 
         onClick={() => onTabChange('cart')} 
       />
       <NavItem 
         icon={<ShoppingBag size={22} className={currentTab === 'orders' ? 'fill-current' : ''} />} 
-        label="Orders" 
+        label={t.orders} 
         isActive={currentTab === 'orders'} 
         onClick={() => onTabChange('orders')} 
       />
       <NavItem 
-        icon={<Settings size={22} className={currentTab === 'settings' ? 'fill-current' : ''} />} 
-        label="Settings" 
+        icon={<SettingsIcon size={22} className={currentTab === 'settings' ? 'fill-current' : ''} />} 
+        label={t.settings} 
         isActive={currentTab === 'settings'} 
         onClick={() => onTabChange('settings')} 
       />

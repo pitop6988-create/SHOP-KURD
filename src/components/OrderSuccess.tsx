@@ -1,6 +1,8 @@
 import { Check } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 export function OrderSuccess({ onContinue }: { onContinue: () => void }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col h-full bg-white relative w-full items-center justify-center p-6">
       <div className="flex-1 flex flex-col items-center justify-center -mt-20">
@@ -9,7 +11,7 @@ export function OrderSuccess({ onContinue }: { onContinue: () => void }) {
             <Check size={32} className="text-white" strokeWidth={3} />
           </div>
         </div>
-        <h2 className="text-2xl font-medium text-slate-800">Order Successful</h2>
+        <h2 className="text-2xl font-medium text-slate-800">{t.orderSuccess}</h2>
       </div>
 
       <div className="w-full shrink-0 pb-6">
@@ -17,7 +19,7 @@ export function OrderSuccess({ onContinue }: { onContinue: () => void }) {
           onClick={onContinue}
           className="w-full bg-[#4ca14b] hover:bg-[#408a3f] text-white font-medium py-4 rounded-full transition-colors shadow-md"
         >
-          Continue Shopping
+          {t.backToHome}
         </button>
       </div>
     </div>

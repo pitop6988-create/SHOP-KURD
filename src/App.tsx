@@ -14,7 +14,7 @@ import { Orders } from './components/Orders';
 import { Checkout } from './components/Checkout';
 import { OrderSuccess } from './components/OrderSuccess';
 import { AdminDashboard } from './components/AdminDashboard';
-import { Product, CartItem, Order } from './types';
+import { Product, CartItem, Order, PromoCode } from './types';
 import { products as initialProducts } from './data';
 import { auth } from './firebase';
 
@@ -66,37 +66,56 @@ export default function App() {
     }
   }, [cart, currentUserKey]);
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('products_list');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return initialProducts;
-  });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [ordersList, setOrdersList] = useState<Order[]>([]);
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('products_list', JSON.stringify(products));
-  }, [products]);
-  const [ordersList, setOrdersList] = useState<Order[]>(() => {
-    try {
-      const saved = localStorage.getItem('orders_list');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [
-      {
-        id: '12A394',
-        customerName: 'Popoola Opeyemi',
-        items: [{ product: initialProducts[0], quantity: 2 }],
-        total: initialProducts[0].price * 2,
-        status: 'pending',
-        date: new Date().toISOString()
-      }
-    ];
-  });
+    import('./firebase').then(({ db }) => {
+      import('firebase/firestore').then(({ collection, onSnapshot, setDoc, doc }) => {
+        // Products Sync
+        const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+          if (snapshot.empty) {
+            initialProducts.forEach(async (p) => {
+              try {
+                await setDoc(doc(db, 'products', p.id), p);
+              } catch (e) {
+                console.error("Error setting initial product:", e);
+              }
+            });
+          } else {
+            const prods = snapshot.docs.map(doc => doc.data() as Product);
+            setProducts(prods);
+          }
+        }, (error) => {
+          console.error("Products snapshot error:", error);
+        });
 
-  useEffect(() => {
-    localStorage.setItem('orders_list', JSON.stringify(ordersList));
-  }, [ordersList]);
+        // Orders Sync
+        const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+          const ords = snapshot.docs.map(doc => doc.data() as Order);
+          ords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setOrdersList(ords);
+        }, (error) => {
+          console.error("Orders snapshot error:", error);
+        });
+
+        // Promo Codes Sync
+        const unsubscribeCodes = onSnapshot(collection(db, 'promo_codes'), (snapshot) => {
+          const codes = snapshot.docs.map(doc => doc.data() as PromoCode);
+          setPromoCodes(codes);
+        }, (error) => {
+          console.error("Promo codes snapshot error:", error);
+        });
+
+        return () => {
+          unsubscribeProducts();
+          unsubscribeOrders();
+          unsubscribeCodes();
+        };
+      });
+    });
+  }, []);
 
   const handleAddToCart = (product: Product, quantity: number) => {
     setCart(prev => {
@@ -174,19 +193,27 @@ export default function App() {
                         {currentScreen === 'checkout' && (
                           <Checkout 
                             onBack={() => setCurrentScreen('cart')} 
-                            onSuccess={() => {
-                              const newOrder: Order = {
-                                id: Math.random().toString(36).substring(2, 8).toUpperCase(),
-                                customerName: auth.currentUser?.email || 'Guest User',
-                                items: [...cart],
-                                total: cartTotal,
-                                status: 'pending',
-                                date: new Date().toISOString()
-                              };
-                              setOrdersList(prev => [newOrder, ...prev]);
-                              setCurrentScreen('order_success');
+                            onSuccess={async () => {
+                              try {
+                                const newOrder: Order = {
+                                  id: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                                  customerName: auth.currentUser?.email || 'Guest User',
+                                  items: [...cart],
+                                  total: cartTotal,
+                                  status: 'pending',
+                                  date: new Date().toISOString()
+                                };
+                                const { doc, setDoc } = await import('firebase/firestore');
+                                const { db } = await import('./firebase');
+                                await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+                                setCurrentScreen('order_success');
+                              } catch (e) {
+                                console.error('Error creating order', e);
+                                alert('Failed to checkout. Please try again.');
+                              }
                             }}
-                            total={cartTotal} 
+                            total={cartTotal}
+                            codes={promoCodes} 
                           />
                         )}
                         {currentScreen === 'order_success' && (
@@ -215,11 +242,66 @@ export default function App() {
                           <AdminDashboard 
                             onBack={() => setCurrentScreen('settings')} 
                             products={products}
-                            onAddProduct={(p) => setProducts([...products, p])}
-                            onUpdateProduct={(p) => setProducts(products.map(pr => pr.id === p.id ? p : pr))}
-                            onDeleteProduct={(id) => setProducts(products.filter(pr => pr.id !== id))}
+                            onAddProduct={async (p) => {
+                              try {
+                                const { doc, setDoc } = await import('firebase/firestore');
+                                const { db } = await import('./firebase');
+                                await setDoc(doc(db, 'products', p.id), p);
+                              } catch (e) {
+                                console.error('Error adding product', e);
+                                alert('Failed to add product: ' + (e as Error).message);
+                              }
+                            }}
+                            onUpdateProduct={async (p) => {
+                              try {
+                                const { doc, updateDoc } = await import('firebase/firestore');
+                                const { db } = await import('./firebase');
+                                await updateDoc(doc(db, 'products', p.id), p as any);
+                              } catch (e) {
+                                console.error('Error updating product', e);
+                                alert('Failed to update: ' + (e as Error).message);
+                              }
+                            }}
+                            onDeleteProduct={async (id) => {
+                              try {
+                                const { doc, deleteDoc } = await import('firebase/firestore');
+                                const { db } = await import('./firebase');
+                                await deleteDoc(doc(db, 'products', id));
+                              } catch (e) {
+                                console.error('Error deleting product', e);
+                                alert('Failed to delete: ' + (e as Error).message);
+                              }
+                            }}
                             orders={ordersList}
-                            onUpdateOrderStatus={(id, status) => setOrdersList(prev => prev.map(o => o.id === id ? { ...o, status } : o))}
+                            onUpdateOrderStatus={async (id, status) => {
+                              try {
+                                const { doc, updateDoc } = await import('firebase/firestore');
+                                const { db } = await import('./firebase');
+                                await updateDoc(doc(db, 'orders', id), { status });
+                              } catch (e) {
+                                console.error('Error updating order status', e);
+                                alert('Failed to update order: ' + (e as Error).message);
+                              }
+                            }}
+                            codes={promoCodes}
+                            onAddCode={async (code) => {
+                              try {
+                                const { doc, setDoc } = await import('firebase/firestore');
+                                const { db } = await import('./firebase');
+                                await setDoc(doc(db, 'promo_codes', code.id), code);
+                              } catch (e) {
+                                console.error('Error adding code', e);
+                              }
+                            }}
+                            onDeleteCode={async (id) => {
+                              try {
+                                const { doc, deleteDoc } = await import('firebase/firestore');
+                                const { db } = await import('./firebase');
+                                await deleteDoc(doc(db, 'promo_codes', id));
+                              } catch (e) {
+                                console.error('Error deleting code', e);
+                              }
+                            }}
                           />
                         )}
                       </div>

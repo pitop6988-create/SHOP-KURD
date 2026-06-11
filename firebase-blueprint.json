@@ -48,6 +48,19 @@
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
       "description": "Orders placed by users"
+    },
+    "/promo_codes/{codeId}": {
+      "schema": {
+        "title": "PromoCode",
+        "description": "Promo codes for discounts",
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "value": { "type": "string" }
+        },
+        "required": ["code", "value"]
+      },
+      "description": "Promo codes available"
     }
   }
 }

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin } from 'lucide-react';
-import { Product, Order } from '../types';
+import { Product, Order, PromoCode } from '../types';
 import { formatPrice } from '../data';
+import { useLanguage } from '../LanguageContext';
 
 export function AdminDashboard({ 
   onBack, 
@@ -10,7 +11,10 @@ export function AdminDashboard({
   onUpdateProduct,
   onDeleteProduct,
   orders,
-  onUpdateOrderStatus
+  onUpdateOrderStatus,
+  codes,
+  onAddCode,
+  onDeleteCode
 }: { 
   onBack: () => void;
   products: Product[];
@@ -19,8 +23,12 @@ export function AdminDashboard({
   onDeleteProduct?: (id: string) => void;
   orders: Order[];
   onUpdateOrderStatus: (orderId: string, status: Order['status']) => void;
+  codes: PromoCode[];
+  onAddCode: (code: PromoCode) => void;
+  onDeleteCode: (id: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'codes'>('orders');
+  const { t } = useLanguage();
   
   // New Product Form State
   const [showAddForm, setShowAddForm] = useState(false);
@@ -30,26 +38,26 @@ export function AdminDashboard({
   const [newItemImage, setNewItemImage] = useState('');
   
   // Codes Tab State
-  const [codes, setCodes] = useState<{code: string, value: string}[]>(() => {
-    try { return JSON.parse(localStorage.getItem('payment_codes') || '[]'); } catch { return []; }
-  });
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeValue, setNewCodeValue] = useState('');
 
   const saveCode = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCodeName || !newCodeValue) return;
-    const updatedCodes = [...codes, { code: newCodeName, value: newCodeValue }];
-    setCodes(updatedCodes);
-    localStorage.setItem('payment_codes', JSON.stringify(updatedCodes));
+    
+    // Pass to parent
+    onAddCode({
+      id: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      code: newCodeName.toUpperCase(),
+      value: newCodeValue
+    });
+    
     setNewCodeName('');
     setNewCodeValue('');
   };
 
-  const deleteCode = (index: number) => {
-    const updatedCodes = codes.filter((_, i) => i !== index);
-    setCodes(updatedCodes);
-    localStorage.setItem('payment_codes', JSON.stringify(updatedCodes));
+  const deleteCode = (id: string) => {
+    onDeleteCode(id);
   };
 
   const handleAddProduct = (e: React.FormEvent) => {
@@ -95,7 +103,7 @@ export function AdminDashboard({
         <button onClick={onBack} className="w-8 h-8 rounded-full flex items-center justify-center mr-4 text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="font-medium text-slate-800 text-lg">Admin Dashboard</h1>
+        <h1 className="font-medium text-slate-800 text-lg">{t.adminDashboard}</h1>
       </div>
 
       <div className="flex border-b border-slate-200 bg-white px-4 shrink-0">
@@ -103,19 +111,19 @@ export function AdminDashboard({
           onClick={() => setActiveTab('orders')}
           className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'orders' ? 'border-[#4ca14b] text-[#4ca14b]' : 'border-transparent text-slate-500'}`}
         >
-          Orders
+          {t.orders}
         </button>
         <button 
           onClick={() => setActiveTab('products')}
           className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'products' ? 'border-[#4ca14b] text-[#4ca14b]' : 'border-transparent text-slate-500'}`}
         >
-          Products
+          {t.products}
         </button>
         <button 
           onClick={() => setActiveTab('codes')}
           className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'codes' ? 'border-[#4ca14b] text-[#4ca14b]' : 'border-transparent text-slate-500'}`}
         >
-          Codes
+          {t.codes}
         </button>
       </div>
 
@@ -123,13 +131,13 @@ export function AdminDashboard({
         {activeTab === 'orders' && (
           <div className="p-4 space-y-4">
             {orders.length === 0 ? (
-              <div className="text-center text-slate-400 py-10">No orders yet</div>
+              <div className="text-center text-slate-400 py-10">{t.noOrders}</div>
             ) : (
               orders.map(order => (
                 <div key={order.id} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-bold text-slate-900 text-lg">Order # {order.id.toUpperCase()}</h3>
+                      <h3 className="font-bold text-slate-900 text-lg">{t.orderHash} {order.id.toUpperCase()}</h3>
                       <p className="text-sm font-medium text-[#4ca14b] mt-0.5">{order.customerName}</p>
                     </div>
                     <span className="text-sm font-medium text-slate-400 shrink-0 ml-4 text-right">
@@ -139,17 +147,17 @@ export function AdminDashboard({
                   </div>
 
                   <div className="text-[15px] text-slate-500">
-                    <span className="font-medium opacity-80">Payment Type: </span>
+                    <span className="font-medium opacity-80">{t.paymentType}: </span>
                     <span className="font-bold text-slate-800">Card</span>
                   </div>
 
                   <div className="text-[15px] text-slate-500">
-                    <span className="font-medium opacity-80">Total Amount: </span>
+                    <span className="font-medium opacity-80">{t.totalAmount}: </span>
                     <span className="font-bold text-slate-800">{formatPrice(order.total, 'IQD')}</span>
                   </div>
 
                   <div className="text-[15px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                    <span className="font-medium opacity-80">Products: </span>
+                    <span className="font-medium opacity-80">{t.products}: </span>
                     <span className="font-bold text-slate-800">
                       {order.items.map(item => `${item.product.name} x${item.quantity}`).join(', ')}
                     </span>
@@ -165,7 +173,7 @@ export function AdminDashboard({
                           : 'bg-slate-100 text-slate-400'
                       }`}
                     >
-                      {order.status === 'confirmed' || order.status === 'delivered' ? 'Accepted' : 'Accept'}
+                      {order.status === 'confirmed' || order.status === 'delivered' ? t.accepted : t.accept}
                     </button>
                     <button 
                       onClick={() => onUpdateOrderStatus(order.id, 'cancelled')}
@@ -178,7 +186,7 @@ export function AdminDashboard({
                             : 'bg-slate-100 text-slate-400'
                       }`}
                     >
-                      Reject
+                      {order.status === 'cancelled' ? t.rejected : t.reject}
                     </button>
                   </div>
                 </div>
@@ -195,7 +203,7 @@ export function AdminDashboard({
                   onClick={() => setShowAddForm(true)}
                   className="w-full mb-6 bg-white border border-dashed border-[#4ca14b] text-[#4ca14b] py-4 rounded-xl flex items-center justify-center font-medium hover:bg-green-50 transition-colors"
                 >
-                  <Plus size={20} className="mr-2" /> Add New Item
+                  <Plus size={20} className="mr-2" /> {t.addNewItem}
                 </button>
 
                 <div className="space-y-4 pb-20">
@@ -223,7 +231,7 @@ export function AdminDashboard({
             ) : (
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-medium text-slate-800">{editingProduct ? 'Edit Item' : 'Add New Item'}</h2>
+                  <h2 className="font-medium text-slate-800">{editingProduct ? t.editItem : t.addNewItem}</h2>
                   <button onClick={() => {
                     setShowAddForm(false);
                     setEditingProduct(null);
@@ -237,7 +245,7 @@ export function AdminDashboard({
 
                 <form onSubmit={handleAddProduct} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Name</label>
+                    <label className="text-sm font-medium text-slate-700">{t.name}</label>
                     <input 
                       type="text" 
                       value={newItemName}
@@ -249,7 +257,7 @@ export function AdminDashboard({
                   </div>
                   
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Money</label>
+                    <label className="text-sm font-medium text-slate-700">{t.money}</label>
                     <input 
                       type="number" 
                       value={newItemPrice}
@@ -261,7 +269,7 @@ export function AdminDashboard({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Image File</label>
+                    <label className="text-sm font-medium text-slate-700">{t.imageFile}</label>
                     <input 
                       type="file"
                       accept="image/*"
@@ -289,7 +297,7 @@ export function AdminDashboard({
                     type="submit"
                     className="w-full bg-[#4ca14b] hover:bg-[#408a3f] text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm mt-4"
                   >
-                    {editingProduct ? 'Update Item' : 'Save Item'}
+                    {editingProduct ? t.updateItem : t.saveItem}
                   </button>
                 </form>
               </div>
@@ -300,10 +308,10 @@ export function AdminDashboard({
         {activeTab === 'codes' && (
           <div className="p-4">
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
-              <h2 className="font-medium text-slate-800 mb-4">Create Code</h2>
+              <h2 className="font-medium text-slate-800 mb-4">{t.createCode}</h2>
               <form onSubmit={saveCode} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Code</label>
+                  <label className="text-sm font-medium text-slate-700">{t.code}</label>
                   <input 
                     type="text" 
                     value={newCodeName}
@@ -314,7 +322,7 @@ export function AdminDashboard({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Value / Description</label>
+                  <label className="text-sm font-medium text-slate-700">{t.valueDescription}</label>
                   <input 
                     type="text" 
                     value={newCodeValue}
@@ -328,19 +336,19 @@ export function AdminDashboard({
                   type="submit"
                   className="w-full bg-[#4ca14b] text-white font-bold py-3.5 rounded-xl transition-all shadow-sm"
                 >
-                  Save Code
+                  {t.saveCode}
                 </button>
               </form>
             </div>
             
             <div className="space-y-4">
                {codes.map((c, i) => (
-                 <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm flex items-center justify-between">
+                 <div key={c.id || i} className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm flex items-center justify-between">
                    <div>
                      <p className="font-bold text-slate-800 tracking-wider bg-slate-100 px-2 rounded">{c.code}</p>
                      <p className="text-sm text-slate-500 mt-1">{c.value}</p>
                    </div>
-                   <button onClick={() => deleteCode(i)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                   <button onClick={() => deleteCode(c.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
                      <Trash2 size={20} />
                    </button>
                  </div>

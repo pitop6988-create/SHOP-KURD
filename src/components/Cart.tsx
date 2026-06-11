@@ -1,6 +1,7 @@
 import { CartItem } from '../types';
 import { formatPrice } from '../data';
 import { Trash2, Plus, Minus, ShoppingCart, ChevronLeft, CreditCard, Clock, Zap } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 export function Cart({
   items,
@@ -17,6 +18,7 @@ export function Cart({
   onBack?: () => void;
   onCheckout?: () => void;
 }) {
+  const { t } = useLanguage();
   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
   if (items.length === 0) {
@@ -29,15 +31,15 @@ export function Cart({
                  <ChevronLeft size={24} className="text-slate-700" />
                </button>
              )}
-             <h1 className="font-medium text-slate-800">Shopping Cart</h1>
+             <h1 className="font-medium text-slate-800">{t.shoppingCart}</h1>
           </div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
           <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-2">
              <ShoppingCart size={40} className="text-slate-300" />
           </div>
-          <h2 className="text-xl font-medium text-slate-800">Your Cart is Empty</h2>
-          <p className="text-slate-500 text-sm">Add services to your cart to get started</p>
+          <h2 className="text-xl font-medium text-slate-800">{t.cartEmpty}</h2>
+          <p className="text-slate-500 text-sm">{t.cartEmptyDesc}</p>
         </div>
       </div>
     );
@@ -52,7 +54,7 @@ export function Cart({
                  <ChevronLeft size={24} className="text-slate-700" />
                </button>
             )}
-            <h1 className="font-medium text-slate-800">Shopping Cart</h1>
+            <h1 className="font-medium text-slate-800">{t.shoppingCart}</h1>
          </div>
          <button onClick={onClear} className="w-8 flex justify-end">
            <Trash2 size={20} className="text-slate-400 hover:text-red-500 transition-colors" />
@@ -75,7 +77,7 @@ export function Cart({
              
              <div className="flex-1 flex flex-col justify-center">
                <h3 className="font-medium text-slate-800 text-[13px] pr-8 mb-1 leading-tight">{item.product.name}</h3>
-               <div className="text-xs text-slate-500 mb-3">{item.product.price.toLocaleString()} IQD per unit</div>
+               <div className="text-xs text-slate-500 mb-3">{item.product.price.toLocaleString()} IQD {t.perUnit}</div>
                
                <div className="flex items-center justify-between mt-auto">
                  <div className="flex items-center space-x-3">
@@ -95,7 +97,7 @@ export function Cart({
                  </div>
                  
                  <div className="text-sm font-bold text-orange-500">
-                    Total: {formatPrice(item.product.price * item.quantity, item.product.currency)}
+                    {t.total}: {formatPrice(item.product.price * item.quantity, item.product.currency)}
                  </div>
                </div>
              </div>
@@ -104,18 +106,18 @@ export function Cart({
 
         <div className="mt-8 bg-white rounded-xl p-5 shadow-sm border border-slate-100 mb-8 mx-1">
            <div className="flex justify-between items-center mb-6">
-              <span className="text-lg font-medium text-slate-800">Total</span>
+              <span className="text-lg font-medium text-slate-800">{t.total}</span>
               <span className="text-xl font-bold text-orange-500">{formatPrice(total, 'IQD')}</span>
            </div>
            
            <div className="grid grid-cols-2 gap-3 mb-3">
               <button className="bg-[#4ca14b] text-white py-3 rounded-lg flex items-center justify-center space-x-2 text-sm font-medium shadow-sm hover:bg-[#408a3f] transition-colors">
                  <Zap size={16} fill="currentColor" className="opacity-80" />
-                 <span>Order Now</span>
+                 <span>{t.orderNow}</span>
               </button>
               <button className="bg-white border hover:bg-slate-50 border-slate-200 text-slate-600 py-3 rounded-lg flex items-center justify-center space-x-2 text-sm font-medium shadow-sm transition-colors">
                  <Clock size={16} className="opacity-80" />
-                 <span>Schedule Order</span>
+                 <span>{t.scheduleOrder}</span>
               </button>
            </div>
            
@@ -124,7 +126,7 @@ export function Cart({
              className="w-full bg-[#4ca14b] text-white mt-1 py-3.5 rounded-lg flex items-center justify-center space-x-2 text-[15px] font-medium shadow-sm hover:bg-[#408a3f] transition-colors"
            >
               <CreditCard size={18} className="opacity-90" />
-              <span>Proceed to Checkout</span>
+              <span>{t.proceedToCheckout}</span>
            </button>
         </div>
       </div>

@@ -6,6 +6,12 @@ export interface Product {
   imageUrl: string;
 }
 
+export interface PromoCode {
+  id: string;
+  code: string;
+  value: string;
+}
+
 export interface CartItem {
   product: Product;
   quantity: number;
