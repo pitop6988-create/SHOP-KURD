@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Product } from '../types';
-import { formatPrice } from '../data';
-import { ChevronLeft, Plus, Minus, Check, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, MoreVertical, Minus, Plus } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 export function ProductDetail({
@@ -14,96 +13,95 @@ export function ProductDetail({
   onAddToCart: (p: Product, q: number) => void;
 }) {
   const [quantity, setQuantity] = useState(1);
-  const [added, setAdded] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
   const { t } = useLanguage();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const handleAdd = () => {
-    onAddToCart(product, quantity);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  };
-
-  if (isFullScreen) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center pt-safe pb-safe" onClick={() => setIsFullScreen(false)}>
-        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
-        <button className="absolute top-6 right-6 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white font-bold backdrop-blur">
-           X
-        </button>
-      </div>
-    );
-  }
+  const allImages = product.imageUrls && product.imageUrls.length > 0 
+      ? [product.imageUrl, ...product.imageUrls.filter(url => url !== product.imageUrl)] 
+      : [product.imageUrl];
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] w-full absolute top-0 left-0 z-20 overflow-hidden">
-      <div className="flex items-center px-4 pt-10 pb-4 bg-white border-b border-slate-100 shadow-sm relative z-10">
-        <button onClick={onBack} className="p-1 -ml-1">
-          <ChevronLeft size={24} className="text-slate-700" />
-        </button>
-        <h1 className="flex-1 text-center font-medium text-sm text-slate-800 pr-8 line-clamp-1">{product.name}</h1>
+    <div className="flex flex-col h-full bg-[#f9fafb] w-full absolute top-0 left-0 z-20 overflow-hidden">
+      <div className="pt-12 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-[#f9fafb]">
+         <div className="w-10">
+           <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors">
+             <ChevronLeft size={24} className="text-slate-800" />
+           </button>
+         </div>
+         <h1 className="font-medium text-slate-900 text-lg flex-1 text-center font-serif">Sneakers Detail</h1>
+         <div className="w-10 flex justify-end">
+           <button className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors">
+             <MoreVertical size={20} className="text-slate-800" />
+           </button>
+         </div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-y-auto">
-        <div 
-          className="bg-white w-full aspect-square flex items-center justify-center p-8 border-b border-slate-50 cursor-pointer"
-          onClick={() => setIsFullScreen(true)}
-        >
-          <img src={product.imageUrl} alt={product.name} className="object-contain w-full h-full max-w-[200px] mix-blend-multiply transition-transform hover:scale-105" />
+        <div className="flex justify-center items-center py-6 px-8 relative mt-10">
+           <div className="w-full max-w-[320px] h-[280px] relative">
+              <img 
+                src={allImages[currentImageIndex]} 
+                alt={product.name} 
+                className="w-full h-full object-contain mix-blend-multiply drop-shadow-2xl translate-y-[-10px] scale-[1.15]" 
+              />
+              
+              <div className="absolute -bottom-8 left-0 right-0 w-[120%] -ml-[10%] h-32 border-b-[1.5px] border-slate-400/40 rounded-[100%] overflow-hidden pointer-events-none">
+                 <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 w-10 h-6 bg-black rounded-full flex items-center justify-center cursor-pointer pointer-events-auto">
+                    <div className="flex space-x-1 border border-white/20 p-1 rounded-full px-2">
+                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
 
-        <div className="p-6 bg-white flex-1 flex flex-col shadow-[0_-8px_20px_rgba(0,0,0,0.02)]">
-          <div className="flex-1">
-             <h2 className="text-[22px] leading-tight font-medium text-slate-800 mb-2">{product.name}</h2>
-             <div className="text-3xl font-bold text-orange-500 mb-8">
-               {formatPrice(product.price, product.currency)}
-             </div>
-
-             <div className="mb-8 select-none">
-               <span className="text-slate-700 text-sm font-medium mb-1 block">{t.quantity}</span>
-               <span className="text-xs text-slate-400 mb-3 block">{t.min}: 1</span>
-               
-               <div className="flex items-center space-x-4">
-                 <button 
-                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                   className="w-11 h-11 border border-slate-200 rounded-lg flex items-center justify-center text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors"
-                 >
-                   <Minus size={18} />
-                 </button>
-                 <span className="w-12 text-center font-medium text-lg text-slate-800">{quantity}</span>
-                 <button 
-                   onClick={() => setQuantity(quantity + 1)}
-                    className="w-11 h-11 border border-slate-200 rounded-lg flex items-center justify-center text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors"
-                 >
-                   <Plus size={18} />
-                 </button>
-               </div>
-             </div>
-          </div>
-
-          <div className="pb-8 pt-4">
-             <button 
-               onClick={handleAdd}
-               disabled={added}
-               className={`w-full py-4 rounded-xl font-medium flex justify-center items-center space-x-2 transition-all shadow-sm ${
-                 added ? 'bg-[#4ca14b] text-white' : 
-                 'bg-[#4ca14b] text-white hover:bg-[#408a3f]'
-               }`}
-             >
-               {added ? (
-                 <>
-                   <Check size={20} />
-                   <span>{t.addedToCart}</span>
-                 </>
-               ) : (
-                 <>
-                   <ShoppingCart size={18} />
-                   <span>{t.addToCart}</span>
-                 </>
-               )}
-             </button>
-          </div>
+        <div className="px-6 flex justify-center space-x-3 mt-12 mb-8 overflow-x-auto pb-4 max-w-full">
+            {allImages.map((img, idx) => (
+               <button 
+                 key={idx}
+                 onClick={() => setCurrentImageIndex(idx)}
+                 className={`w-20 h-20 rounded-[14px] flex-shrink-0 flex items-center justify-center p-3 transition-all ${currentImageIndex === idx ? 'border-2 border-[#1b8c38] shadow-sm' : 'bg-slate-100 border border-transparent opacity-80 hover:opacity-100'}`}
+               >
+                  <img src={img} alt={`thumb ${idx}`} className="w-full h-full object-contain mix-blend-multiply drop-shadow-md" />
+               </button>
+            ))}
         </div>
+
+        <div className="px-6 flex justify-between items-start mt-6 w-full">
+           <h2 className="text-[22px] font-bold text-slate-800 leading-snug flex-1 pr-4">{product.name}</h2>
+           <div className="text-[22px] font-bold text-slate-900">{product.price.toLocaleString()} IQD</div>
+        </div>
+
+        <div className="px-6 mt-8 flex items-center justify-center mb-32">
+           <div className="flex items-center space-x-5 bg-white rounded-full px-2 py-1.5 shadow-sm border border-slate-100 w-fit">
+              <button 
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-[#4ca14b] bg-white border border-slate-100 hover:bg-slate-50 transition-colors"
+              >
+                <Minus size={20} strokeWidth={2.5} />
+              </button>
+              <span className="w-6 text-center text-[18px] font-bold text-slate-800">{quantity}</span>
+              <button 
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-10 h-10 rounded-full bg-[#1b8c38] flex items-center justify-center text-white shadow-sm hover:bg-[#15712c] transition-colors"
+              >
+                <Plus size={20} strokeWidth={2.5} />
+              </button>
+           </div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full bg-white/80 backdrop-blur-md p-6 border-t border-slate-100 z-20 pb-8">
+         <button 
+           onClick={() => {
+              onAddToCart(product, quantity);
+              onBack();
+           }}
+           className="w-full bg-[#1b8c38] text-white py-4 rounded-full flex items-center justify-center text-[16px] font-medium shadow-md hover:bg-[#15712c] transition-colors"
+         >
+            {t.addToCart || 'Add to Cart'}
+         </button>
       </div>
     </div>
   );

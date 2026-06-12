@@ -55,11 +55,16 @@ export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order
                 </div>
               </div>
 
-              <div className="space-y-2 opacity-80 text-white mb-4">
+              <div className="space-y-3 opacity-90 text-white mb-4">
                 {order.items.map(item => (
-                  <div key={item.product.id} className="flex justify-between text-sm">
-                    <span>{item.quantity}x {item.product.name}</span>
-                    <span>{formatPrice(item.product.price * item.quantity, item.product.currency)}</span>
+                  <div key={item.product.id} className="flex items-center justify-between text-sm bg-white/5 rounded-lg p-2 border border-white/5">
+                    <div className="flex items-center flex-1">
+                      <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center p-1 mr-3 shrink-0 overflow-hidden">
+                        <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-contain mix-blend-multiply" />
+                      </div>
+                      <span className="font-medium pr-2 leading-tight">{item.quantity}x {item.product.name}</span>
+                    </div>
+                    <span className="font-medium shrink-0">{formatPrice(item.product.price * item.quantity, item.product.currency)}</span>
                   </div>
                 ))}
               </div>

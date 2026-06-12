@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { ChevronLeft } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
@@ -13,6 +14,22 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
   
   const { language, setLanguage, t } = useLanguage();
 
+  const ensureUserProfile = async (user: any) => {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(userRef);
+      if (!docSnap.exists()) {
+        await setDoc(userRef, {
+          id: user.uid,
+          email: user.email,
+          walletBalance: 0
+        });
+      }
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+    }
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -20,9 +37,11 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
     try {
       setIsLoading(true);
       if (view === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        await ensureUserProfile(cred.user);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await ensureUserProfile(cred.user);
       }
       onComplete();
     } catch (error: any) {
@@ -31,7 +50,8 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
         alert(t.invalidCredentials || "Invalid email or password. Please check your credentials or register if you don't have an account.");
       } else if (error.code === 'auth/email-already-in-use') {
         try {
-          await signInWithEmailAndPassword(auth, email, password);
+          const cred = await signInWithEmailAndPassword(auth, email, password);
+          await ensureUserProfile(cred.user);
           onComplete();
         } catch (signInError: any) {
           if (signInError.code === 'auth/invalid-credential') {
@@ -55,7 +75,8 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
     try {
       setIsLoading(true);
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const cred = await signInWithPopup(auth, provider);
+      await ensureUserProfile(cred.user);
       onComplete();
     } catch (error) {
       console.error("Error signing in with Google:", error);

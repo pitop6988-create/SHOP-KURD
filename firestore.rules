@@ -17,5 +17,15 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /app_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

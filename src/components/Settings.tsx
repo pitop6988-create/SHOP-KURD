@@ -1,14 +1,45 @@
-import React, { useState } from 'react';
-import { ChevronRight, HeadphonesIcon, Moon, Globe, Lock, LogOut, X } from 'lucide-react';
-import { auth } from '../firebase';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, HeadphonesIcon, Moon, Globe, Lock, LogOut, Wallet, Sun, X } from 'lucide-react';
+import { auth, db } from '../firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useLanguage } from '../LanguageContext';
+import { formatPrice } from '../data';
 
 export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: () => void; onLogout?: () => void }) {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [appVersion, setAppVersion] = useState<string>('1.0.0');
+  const [themeMode, setThemeMode] = useState<'light'|'dark'>('light');
+  
   const { language, setLanguage, t } = useLanguage();
+
+  useEffect(() => {
+    // Fetch user wallet
+    if (auth.currentUser) {
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      const unsubscribeUser = onSnapshot(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setWalletBalance(snapshot.data().walletBalance || 0);
+        }
+      });
+      return () => unsubscribeUser();
+    }
+  }, []);
+
+  useEffect(() => {
+    // Fetch App Version
+    const configRef = doc(db, 'app_settings', 'general');
+    const unsubscribeConfig = onSnapshot(configRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setAppVersion(snapshot.data().version || '1.0.0');
+      }
+    });
+    return () => unsubscribeConfig();
+  }, []);
 
   const handleAdminVerify = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +68,19 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
         </div>
 
         <div className="text-center text-slate-400 text-sm mb-8 font-medium">
-          {t.version} 1.0.0
+          {t.version} {appVersion}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mx-4 overflow-hidden mb-6">
+          <div className="w-full flex items-center p-4 border-b border-slate-50">
+            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-[#4ca14b] mr-4">
+              <Wallet size={20} />
+            </div>
+            <div className="flex flex-col flex-1">
+              <span className="font-medium text-slate-500 text-sm">Wallet Balance</span>
+              <span className="font-bold text-slate-800 text-lg">{formatPrice(walletBalance, 'IQD')}</span>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mx-4 overflow-hidden">
@@ -51,7 +94,7 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
             <ChevronRight size={20} className="text-slate-300" />
           </button>
 
-          <button className="w-full flex items-center justify-between p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
+          <button onClick={() => setShowThemeModal(true)} className="w-full flex items-center justify-between p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
             <div className="flex items-center space-x-4">
               <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
                 <Moon size={20} />
@@ -168,6 +211,37 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
               >
                 <img src="https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg" alt="English" className="w-14 h-9 object-cover rounded mb-4" />
                 <span className="font-medium text-[15px]">English</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showThemeModal && (
+        <div 
+          className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-end justify-center"
+          onClick={() => setShowThemeModal(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-md rounded-t-[2.5rem] pt-6 pb-14 px-6 shadow-2xl animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => { setThemeMode('light'); setShowThemeModal(false); }}
+                className={`flex flex-col items-center justify-center py-10 px-6 rounded-[1.5rem] transition-all border ${themeMode === 'light' ? 'bg-[#4ca14b] text-white border-[#4ca14b]' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'}`}
+              >
+                <Sun size={32} className={`mb-3 ${themeMode === 'light' ? 'text-yellow-300' : 'text-yellow-500'}`} />
+                <span className="font-medium text-lg">Light</span>
+              </button>
+
+              <button 
+                onClick={() => { setThemeMode('dark'); setShowThemeModal(false); }}
+                className={`flex flex-col items-center justify-center py-10 px-6 rounded-[1.5rem] transition-all border ${themeMode === 'dark' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'}`}
+              >
+                <Moon size={32} className={`mb-3 ${themeMode === 'dark' ? 'text-blue-300' : 'text-slate-400'}`} />
+                <span className="font-medium text-lg">Dark</span>
               </button>
             </div>
           </div>

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin } from 'lucide-react';
-import { Product, Order, PromoCode } from '../types';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin, Users, Settings as SettingsIcon } from 'lucide-react';
+import { Product, Order, PromoCode, UserProfile } from '../types';
 import { formatPrice } from '../data';
 import { useLanguage } from '../LanguageContext';
+import { doc, setDoc, onSnapshot, collection, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export function AdminDashboard({ 
   onBack, 
@@ -27,8 +29,8 @@ export function AdminDashboard({
   onAddCode: (code: PromoCode) => void;
   onDeleteCode: (id: string) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'codes'>('orders');
-  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'codes' | 'users' | 'settings'>('orders');
+  const { t, language } = useLanguage();
   
   // New Product Form State
   const [showAddForm, setShowAddForm] = useState(false);
@@ -36,10 +38,33 @@ export function AdminDashboard({
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemImage, setNewItemImage] = useState('');
+  const [newItemImage2, setNewItemImage2] = useState('');
   
   // Codes Tab State
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeValue, setNewCodeValue] = useState('');
+
+  // Users State
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [addingCoinMode, setAddingCoinMode] = useState<string | null>(null);
+  const [coinAmount, setCoinAmount] = useState('');
+
+  // App Settings State
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => {
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setUsers(snapshot.docs.map(d => d.data() as UserProfile));
+    });
+    const unsubConfig = onSnapshot(doc(db, 'app_settings', 'general'), (snapshot) => {
+      if (snapshot.exists()) {
+        setAppVersion(snapshot.data().version || '1.0.0');
+      } else {
+        setAppVersion('1.0.0');
+      }
+    });
+    return () => { unsubUsers(); unsubConfig(); };
+  }, []);
 
   const saveCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,12 +89,17 @@ export function AdminDashboard({
     e.preventDefault();
     if (!newItemName || !newItemPrice || !newItemImage) return;
 
+    const urls = [];
+    if (newItemImage) urls.push(newItemImage);
+    if (newItemImage2) urls.push(newItemImage2);
+
     if (editingProduct && onUpdateProduct) {
       onUpdateProduct({
         ...editingProduct,
         name: newItemName,
         price: parseInt(newItemPrice) || 0,
-        imageUrl: newItemImage
+        imageUrl: newItemImage,
+        imageUrls: urls
       });
     } else {
       const newProduct: Product = {
@@ -77,7 +107,8 @@ export function AdminDashboard({
         name: newItemName,
         price: parseInt(newItemPrice) || 0,
         currency: 'IQD',
-        imageUrl: newItemImage
+        imageUrl: newItemImage,
+        imageUrls: urls
       };
       onAddProduct(newProduct);
     }
@@ -85,6 +116,7 @@ export function AdminDashboard({
     setNewItemName('');
     setNewItemPrice('');
     setNewItemImage('');
+    setNewItemImage2('');
     setEditingProduct(null);
     setShowAddForm(false);
   };
@@ -94,7 +126,28 @@ export function AdminDashboard({
     setNewItemName(product.name);
     setNewItemPrice(product.price.toString());
     setNewItemImage(product.imageUrl);
+    setNewItemImage2(product.imageUrls?.[1] || '');
     setShowAddForm(true);
+  };
+
+  const handleAddCoin = async (userId: string) => {
+    if (!coinAmount || isNaN(Number(coinAmount))) return;
+    const amount = Number(coinAmount);
+    
+    const userRef = doc(db, 'users', userId);
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      await updateDoc(userRef, {
+        walletBalance: (user.walletBalance || 0) + amount
+      });
+    }
+    setAddingCoinMode(null);
+    setCoinAmount('');
+  };
+
+  const handleSaveVersion = async () => {
+    await setDoc(doc(db, 'app_settings', 'general'), { version: appVersion }, { merge: true });
+    alert('Version updated');
   };
 
   return (
@@ -124,6 +177,18 @@ export function AdminDashboard({
           className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'codes' ? 'border-[#4ca14b] text-[#4ca14b]' : 'border-transparent text-slate-500'}`}
         >
           {t.codes}
+        </button>
+        <button 
+          onClick={() => setActiveTab('users')}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'users' ? 'border-[#4ca14b] text-[#4ca14b]' : 'border-transparent text-slate-500'}`}
+        >
+          <Users size={18} className="mx-auto" />
+        </button>
+        <button 
+          onClick={() => setActiveTab('settings')}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'settings' ? 'border-[#4ca14b] text-[#4ca14b]' : 'border-transparent text-slate-500'}`}
+        >
+          <SettingsIcon size={18} className="mx-auto" />
         </button>
       </div>
 
@@ -238,6 +303,7 @@ export function AdminDashboard({
                     setNewItemName('');
                     setNewItemPrice('');
                     setNewItemImage('');
+                    setNewItemImage2('');
                   }} className="text-slate-400 hover:text-slate-600">
                     <X size={20} />
                   </button>
@@ -284,11 +350,35 @@ export function AdminDashboard({
                         }
                       }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#4ca14b]/10 file:text-[#4ca14b] hover:file:bg-[#4ca14b]/20"
-                      required
+                      required={!editingProduct}
                     />
                     {newItemImage && (
                        <div className="mt-3 w-16 h-16 rounded-lg overflow-hidden border border-slate-200">
                          <img src={newItemImage} alt="Preview" className="w-full h-full object-cover" />
+                       </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Image File 2 (Optional)</label>
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setNewItemImage2(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#4ca14b]/10 file:text-[#4ca14b] hover:file:bg-[#4ca14b]/20"
+                    />
+                    {newItemImage2 && (
+                       <div className="mt-3 w-16 h-16 rounded-lg overflow-hidden border border-slate-200">
+                         <img src={newItemImage2} alt="Preview" className="w-full h-full object-cover" />
                        </div>
                     )}
                   </div>
@@ -357,6 +447,67 @@ export function AdminDashboard({
                  <p className="text-center text-slate-400 py-10">No codes created yet.</p>
                )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'users' && (
+          <div className="p-4 space-y-4">
+             {users.length === 0 ? (
+               <div className="text-center text-slate-400 py-10">No users found</div>
+             ) : (
+               users.map(user => (
+                 <div key={user.id} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm flex items-center justify-between">
+                   <div className="overflow-hidden pr-4 flex-1">
+                     <p className="font-bold text-slate-800 truncate">{user.email}</p>
+                     <p className="text-sm font-medium text-[#4ca14b] mt-0.5">Wallet: {formatPrice(user.walletBalance || 0, 'IQD')}</p>
+                   </div>
+                   {addingCoinMode === user.id ? (
+                     <div className="flex space-x-2 shrink-0">
+                       <input 
+                         type="number"
+                         value={coinAmount}
+                         onChange={e => setCoinAmount(e.target.value)}
+                         className="w-24 border border-slate-200 rounded px-2 text-sm"
+                         placeholder="Amount"
+                       />
+                       <button onClick={() => handleAddCoin(user.id)} className="bg-green-500 text-white rounded p-1">
+                         <Check size={16} />
+                       </button>
+                       <button onClick={() => setAddingCoinMode(null)} className="bg-red-500 text-white rounded p-1">
+                         <X size={16} />
+                       </button>
+                     </div>
+                   ) : (
+                     <button
+                       onClick={() => { setAddingCoinMode(user.id); setCoinAmount(''); }}
+                       className="shrink-0 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
+                     >
+                       Add Coin
+                     </button>
+                   )}
+                 </div>
+               ))
+             )}
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="p-4 flex flex-col space-y-4">
+             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+               <h2 className="font-medium text-slate-800 mb-4">App Version</h2>
+               <div className="space-y-4">
+                 <input 
+                   type="text" 
+                   value={appVersion}
+                   onChange={e => setAppVersion(e.target.value)}
+                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b]"
+                   placeholder="e.g. 1.5.0"
+                 />
+                 <button onClick={handleSaveVersion} className="w-full bg-[#4ca14b] text-white py-3 rounded-lg font-bold">
+                   Save Version
+                 </button>
+               </div>
+             </div>
           </div>
         )}
       </div>

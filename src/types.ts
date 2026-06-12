@@ -4,6 +4,17 @@ export interface Product {
   price: number;
   currency: string;
   imageUrl: string;
+  imageUrls?: string[];
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  walletBalance: number;
+}
+
+export interface AppSettings {
+  version: string;
 }
 
 export interface PromoCode {

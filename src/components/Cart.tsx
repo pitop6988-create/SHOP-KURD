@@ -1,6 +1,6 @@
 import { CartItem } from '../types';
 import { formatPrice } from '../data';
-import { Trash2, Plus, Minus, ShoppingCart, ChevronLeft, CreditCard, Clock, Zap } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingCart, ChevronLeft, MoreVertical, MapPin, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 export function Cart({
@@ -19,20 +19,24 @@ export function Cart({
   onCheckout?: () => void;
 }) {
   const { t } = useLanguage();
-  const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const total = subtotal;
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col h-full bg-[#f8fafc] pb-24 w-full">
-        <div className="pt-10 pb-4 px-4 flex items-center justify-between bg-white border-b border-slate-100 shadow-sm relative z-10">
-          <div className="flex items-center space-x-2">
-             {onBack && (
-               <button onClick={onBack} className="p-1 -ml-1">
-                 <ChevronLeft size={24} className="text-slate-700" />
-               </button>
-             )}
-             <h1 className="font-medium text-slate-800">{t.shoppingCart}</h1>
-          </div>
+      <div className="flex flex-col h-full bg-[#f9fafb] pb-24 w-full">
+        <div className="pt-12 pb-4 px-6 flex items-center justify-between relative z-10">
+           <div className="flex items-center space-x-2 w-10">
+              {onBack && (
+                <button onClick={onBack} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                  <ChevronLeft size={20} className="text-slate-800" />
+                </button>
+              )}
+           </div>
+           <h1 className="font-medium text-slate-900 text-lg flex-1 text-center font-serif">{t.shoppingCart || 'Cart'}</h1>
+           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+             <MoreVertical size={20} className="text-slate-800" />
+           </div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
           <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-2">
@@ -46,89 +50,76 @@ export function Cart({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] pb-20 w-full relative">
-      <div className="pt-10 pb-4 px-4 flex items-center justify-between bg-white border-b border-slate-100 shadow-sm sticky top-0 z-10">
-         <div className="flex items-center space-x-2">
+    <div className="flex flex-col h-full bg-[#f9fafb] w-full relative">
+      <div className="pt-12 pb-4 px-6 flex items-center justify-between sticky top-0 z-10 bg-[#f9fafb]">
+         <div className="flex items-center space-x-2 w-10">
             {onBack && (
-               <button onClick={onBack} className="p-1 -ml-1">
-                 <ChevronLeft size={24} className="text-slate-700" />
-               </button>
+              <button onClick={onBack} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                <ChevronLeft size={20} className="text-slate-800" />
+              </button>
             )}
-            <h1 className="font-medium text-slate-800">{t.shoppingCart}</h1>
          </div>
-         <button onClick={onClear} className="w-8 flex justify-end">
-           <Trash2 size={20} className="text-slate-400 hover:text-red-500 transition-colors" />
+         <h1 className="font-medium text-slate-900 text-lg flex-1 text-center">{t.shoppingCart || 'Cart'}</h1>
+         <button onClick={onClear} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors overflow-hidden relative group">
+           <MoreVertical size={20} className="text-slate-800 group-hover:opacity-0 transition-opacity" />
+           <Trash2 size={18} className="text-red-500 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity" />
          </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {items.map(item => (
-          <div key={item.product.id} className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex space-x-4 relative group">
-             <button 
-               onClick={() => onRemoveItem(item.product.id)}
-               className="absolute top-3 right-3 text-red-400 bg-red-50 p-1 rounded-full opacity-80 hover:opacity-100"
-             >
-                <Trash2 size={14} />
-             </button>
-             
-             <div className="w-[88px] h-[88px] bg-slate-50 rounded-lg flex-shrink-0 flex items-center justify-center p-2 border border-slate-50">
-               <img src={item.product.imageUrl} alt={item.product.name} className="object-contain w-full h-full mix-blend-multiply" />
-             </div>
-             
-             <div className="flex-1 flex flex-col justify-center">
-               <h3 className="font-medium text-slate-800 text-[13px] pr-8 mb-1 leading-tight">{item.product.name}</h3>
-               <div className="text-xs text-slate-500 mb-3">{item.product.price.toLocaleString()} IQD {t.perUnit}</div>
-               
-               <div className="flex items-center justify-between mt-auto">
-                 <div className="flex items-center space-x-3">
-                    <button 
-                      onClick={() => onUpdateQuantity(item.product.id, Math.max(1, item.quantity - 1))}
-                      className="w-[28px] h-[28px] border border-slate-200 rounded flex items-center justify-center text-slate-500 bg-white hover:bg-slate-50"
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <span className="w-4 text-center text-sm font-medium text-slate-800">{item.quantity}</span>
-                    <button 
-                      onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                      className="w-[28px] h-[28px] border border-slate-200 rounded flex items-center justify-center text-slate-500 bg-white hover:bg-slate-50"
-                    >
-                      <Plus size={14} />
-                    </button>
+      <div className="flex-1 overflow-y-auto w-full">
+        <div className="px-6 space-y-6 pt-6">
+          {items.map(item => (
+            <div key={item.product.id} className="flex relative">
+               <div className="flex-1 flex items-center bg-white rounded-[1.5rem] pr-5 relative z-10">
+                 <div className="w-[120px] h-[120px] bg-slate-100 rounded-[1.5rem] flex-shrink-0 flex items-center justify-center p-3 relative shadow-inner">
+                   <img src={item.product.imageUrl} alt={item.product.name} className="object-contain w-full h-full mix-blend-multiply" />
                  </div>
                  
-                 <div className="text-sm font-bold text-orange-500">
-                    {t.total}: {formatPrice(item.product.price * item.quantity, item.product.currency)}
+                 <div className="flex-1 flex flex-col justify-center pl-5 py-4">
+                   <h3 className="font-medium text-slate-600 text-[15px] mb-3 leading-snug line-clamp-2">{item.product.name}</h3>
+                   
+                   <div className="flex items-center justify-between mt-auto">
+                     <div className="text-lg font-bold text-slate-900">
+                        {item.product.price.toLocaleString()} IQD
+                     </div>
+
+                     <div className="flex items-center space-x-4 bg-slate-50 rounded-full px-2 py-1 shadow-sm border border-slate-100">
+                        <button 
+                          onClick={() => item.quantity > 1 ? onUpdateQuantity(item.product.id, item.quantity - 1) : onRemoveItem(item.product.id)}
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[#4ca14b]"
+                        >
+                          {item.quantity > 1 ? <Minus size={16} strokeWidth={3} /> : <Trash2 size={14} className="text-red-400" />}
+                        </button>
+                        <span className="w-3 text-center text-[15px] font-bold text-slate-800">{item.quantity}</span>
+                        <button 
+                          onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                          className="w-7 h-7 rounded-full bg-[#4ca14b] flex items-center justify-center text-white shadow-sm"
+                        >
+                          <Plus size={16} strokeWidth={3} />
+                        </button>
+                     </div>
+                   </div>
                  </div>
                </div>
-             </div>
-          </div>
-        ))}
-
-        <div className="mt-8 bg-white rounded-xl p-5 shadow-sm border border-slate-100 mb-8 mx-1">
-           <div className="flex justify-between items-center mb-6">
-              <span className="text-lg font-medium text-slate-800">{t.total}</span>
-              <span className="text-xl font-bold text-orange-500">{formatPrice(total, 'IQD')}</span>
-           </div>
-           
-           <div className="grid grid-cols-2 gap-3 mb-3">
-              <button className="bg-[#4ca14b] text-white py-3 rounded-lg flex items-center justify-center space-x-2 text-sm font-medium shadow-sm hover:bg-[#408a3f] transition-colors">
-                 <Zap size={16} fill="currentColor" className="opacity-80" />
-                 <span>{t.orderNow}</span>
-              </button>
-              <button className="bg-white border hover:bg-slate-50 border-slate-200 text-slate-600 py-3 rounded-lg flex items-center justify-center space-x-2 text-sm font-medium shadow-sm transition-colors">
-                 <Clock size={16} className="opacity-80" />
-                 <span>{t.scheduleOrder}</span>
-              </button>
-           </div>
-           
-           <button 
-             onClick={onCheckout}
-             className="w-full bg-[#4ca14b] text-white mt-1 py-3.5 rounded-lg flex items-center justify-center space-x-2 text-[15px] font-medium shadow-sm hover:bg-[#408a3f] transition-colors"
-           >
-              <CreditCard size={18} className="opacity-90" />
-              <span>{t.proceedToCheckout}</span>
-           </button>
+            </div>
+          ))}
         </div>
+
+        <div className="mt-8 px-6 pb-32">
+           <div className="flex justify-between items-center px-1">
+              <span className="text-[17px] font-bold text-slate-800">Total</span>
+              <span className="text-2xl font-bold text-slate-900">{total.toLocaleString()} IQD</span>
+           </div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full bg-white/80 backdrop-blur-md p-6 border-t border-slate-100 z-20 pb-8">
+         <button 
+           onClick={onCheckout}
+           className="w-full bg-[#1b8c38] text-white py-4 rounded-full flex items-center justify-center text-[16px] font-medium shadow-md hover:bg-[#15712c] transition-colors"
+         >
+            Checkout
+         </button>
       </div>
     </div>
   );
