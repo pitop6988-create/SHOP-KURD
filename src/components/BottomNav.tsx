@@ -19,21 +19,6 @@ export function BottomNav({ currentTab, onTabChange, cartItemCount }: BottomNavP
         onClick={() => onTabChange('services')} 
       />
       <NavItem 
-        icon={
-          <div className="relative">
-            <ShoppingCart size={22} className={currentTab === 'cart' ? 'fill-current' : ''} />
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-[#4ca14b] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold ring-2 ring-white">
-                {cartItemCount}
-              </span>
-            )}
-          </div>
-        } 
-        label={t.cart} 
-        isActive={currentTab === 'cart'} 
-        onClick={() => onTabChange('cart')} 
-      />
-      <NavItem 
         icon={<ShoppingBag size={22} className={currentTab === 'orders' ? 'fill-current' : ''} />} 
         label={t.orders} 
         isActive={currentTab === 'orders'} 

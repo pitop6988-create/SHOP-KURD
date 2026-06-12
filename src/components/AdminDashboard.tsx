@@ -55,14 +55,14 @@ export function AdminDashboard({
   useEffect(() => {
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       setUsers(snapshot.docs.map(d => d.data() as UserProfile));
-    });
+    }, (error) => console.error(error));
     const unsubConfig = onSnapshot(doc(db, 'app_settings', 'general'), (snapshot) => {
       if (snapshot.exists()) {
         setAppVersion(snapshot.data().version || '1.0.0');
       } else {
         setAppVersion('1.0.0');
       }
-    });
+    }, (error) => console.error(error));
     return () => { unsubUsers(); unsubConfig(); };
   }, []);
 

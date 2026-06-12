@@ -21,70 +21,83 @@ export function ProductDetail({
       : [product.imageUrl];
 
   return (
-    <div className="flex flex-col h-full bg-[#f9fafb] w-full absolute top-0 left-0 z-20 overflow-hidden">
-      <div className="pt-12 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-[#f9fafb]">
+    <div className="flex flex-col h-full bg-white w-full absolute inset-0 z-20 overflow-hidden">
+      <div className="pt-12 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-white">
          <div className="w-10">
            <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors">
-             <ChevronLeft size={24} className="text-slate-800" />
+             <ChevronLeft size={28} className="text-slate-900" strokeWidth={2.5} />
            </button>
          </div>
-         <h1 className="font-medium text-slate-900 text-lg flex-1 text-center font-serif">Sneakers Detail</h1>
+         <h1 className="font-semibold text-slate-900 text-[18px] flex-1 text-center font-sans tracking-tight">
+            👟 {product.name}
+         </h1>
          <div className="w-10 flex justify-end">
-           <button className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors">
-             <MoreVertical size={20} className="text-slate-800" />
+           <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-slate-50 transition-colors">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-900"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
            </button>
          </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-y-auto">
-        <div className="flex justify-center items-center py-6 px-8 relative mt-10">
-           <div className="w-full max-w-[320px] h-[280px] relative">
+      <div className="flex-1 flex flex-col overflow-y-auto px-5 pb-32">
+        <div className="w-full bg-[#f0eff4] rounded-[2.5rem] relative mt-2 pt-8 pb-16 flex flex-col items-center">
+           <div className="absolute top-4 right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm z-10">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+           </div>
+           
+           <div className="w-full h-[260px] relative px-4 flex items-center justify-center">
               <img 
                 src={allImages[currentImageIndex]} 
                 alt={product.name} 
-                className="w-full h-full object-contain mix-blend-multiply drop-shadow-2xl translate-y-[-10px] scale-[1.15]" 
+                className="w-[90%] h-full object-contain mix-blend-multiply drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)] scale-[1.1] translate-y-2 z-0" 
               />
-              
-              <div className="absolute -bottom-8 left-0 right-0 w-[120%] -ml-[10%] h-32 border-b-[1.5px] border-slate-400/40 rounded-[100%] overflow-hidden pointer-events-none">
-                 <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 w-10 h-6 bg-black rounded-full flex items-center justify-center cursor-pointer pointer-events-auto">
-                    <div className="flex space-x-1 border border-white/20 p-1 rounded-full px-2">
-                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </div>
-                 </div>
+           </div>
+
+           <div className="absolute bottom-4 left-4 right-4 h-12 bg-white/70 backdrop-blur-md rounded-full flex items-center px-2 shadow-sm border border-white/40">
+              <div className="bg-[#f2f2f2] w-14 h-8 rounded-full flex items-center justify-center space-x-1 pl-1">
+                 <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                 <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                 <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                 <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                 <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                 <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
               </div>
+              <div className="flex-1 ml-2 bg-white h-8 rounded-full shadow-inner"></div>
            </div>
         </div>
 
-        <div className="px-6 flex justify-center space-x-3 mt-12 mb-8 overflow-x-auto pb-4 max-w-full">
-            {allImages.map((img, idx) => (
+        <div className="flex justify-between space-x-3 mt-6 pb-4 overflow-x-auto w-full hide-scrollbar">
+            {allImages.slice(0, 5).map((img, idx) => (
                <button 
                  key={idx}
                  onClick={() => setCurrentImageIndex(idx)}
-                 className={`w-20 h-20 rounded-[14px] flex-shrink-0 flex items-center justify-center p-3 transition-all ${currentImageIndex === idx ? 'border-2 border-[#1b8c38] shadow-sm' : 'bg-slate-100 border border-transparent opacity-80 hover:opacity-100'}`}
+                 className={`w-[60px] h-[60px] sm:w-[72px] sm:h-[72px] rounded-3xl flex-shrink-0 flex items-center justify-center p-2 transition-all relative overflow-hidden ${currentImageIndex === idx ? 'border-[2.5px] border-slate-900 shadow-inner' : 'bg-[#f4f3f8] border border-transparent opacity-90 hover:opacity-100'}`}
                >
-                  <img src={img} alt={`thumb ${idx}`} className="w-full h-full object-contain mix-blend-multiply drop-shadow-md" />
+                  {currentImageIndex === idx && (
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none"></div>
+                  )}
+                  <img src={img} alt={`thumb ${idx}`} className="w-full h-full object-contain mix-blend-multiply drop-shadow-sm relative z-10" />
                </button>
             ))}
         </div>
 
-        <div className="px-6 flex justify-between items-start mt-6 w-full">
-           <h2 className="text-[22px] font-bold text-slate-800 leading-snug flex-1 pr-4">{product.name}</h2>
+        <div className="flex justify-between items-start mt-8 w-full px-1">
+           <h2 className="text-[24px] font-bold text-slate-900 leading-snug flex-1 pr-4">{product.name}</h2>
            <div className="text-[22px] font-bold text-slate-900">{product.price.toLocaleString()} IQD</div>
         </div>
 
-        <div className="px-6 mt-8 flex items-center justify-center mb-32">
-           <div className="flex items-center space-x-5 bg-white rounded-full px-2 py-1.5 shadow-sm border border-slate-100 w-fit">
+        <div className="mt-8 flex items-center justify-center w-full px-1 mb-8">
+           <div className="flex items-center justify-between bg-[#f5f4f7] rounded-full p-1.5 w-full max-w-[200px]">
               <button 
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-[#4ca14b] bg-white border border-slate-100 hover:bg-slate-50 transition-colors"
+                className="w-12 h-12 rounded-full flex items-center justify-center text-slate-600 bg-white shadow-sm hover:bg-slate-50 transition-colors"
+                disabled={quantity <= 1}
               >
                 <Minus size={20} strokeWidth={2.5} />
               </button>
-              <span className="w-6 text-center text-[18px] font-bold text-slate-800">{quantity}</span>
+              <span className="w-12 text-center text-[20px] font-bold text-slate-900">{quantity}</span>
               <button 
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-10 h-10 rounded-full bg-[#1b8c38] flex items-center justify-center text-white shadow-sm hover:bg-[#15712c] transition-colors"
+                className="w-12 h-12 rounded-full bg-[#f46036] flex items-center justify-center text-white shadow-sm hover:bg-[#e0542d] transition-colors"
               >
                 <Plus size={20} strokeWidth={2.5} />
               </button>
@@ -92,15 +105,15 @@ export function ProductDetail({
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 w-full bg-white/80 backdrop-blur-md p-6 border-t border-slate-100 z-20 pb-8">
+      <div className="absolute bottom-0 left-0 w-full bg-white p-5 pb-8 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] border-t border-slate-100">
          <button 
            onClick={() => {
               onAddToCart(product, quantity);
               onBack();
            }}
-           className="w-full bg-[#1b8c38] text-white py-4 rounded-full flex items-center justify-center text-[16px] font-medium shadow-md hover:bg-[#15712c] transition-colors"
+           className="w-full bg-[#f46036] text-white py-[18px] rounded-full flex items-center justify-center text-[18px] font-bold shadow-[0_8px_20px_rgba(244,96,54,0.3)] hover:bg-[#e0542d] transition-all active:scale-[0.98]"
          >
-            {t.addToCart || 'Add to Cart'}
+            {t.addToCart || 'Checkout Now'}
          </button>
       </div>
     </div>

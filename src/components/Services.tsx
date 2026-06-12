@@ -7,11 +7,15 @@ import { useLanguage } from '../LanguageContext';
 export function Services({ 
   products,
   onProductClick,
-  onAddToCart
+  onAddToCart,
+  cartItemCount,
+  onCartClick
 }: { 
   products: Product[];
   onProductClick: (p: Product) => void;
   onAddToCart: (p: Product, qty: number) => void;
+  cartItemCount: number;
+  onCartClick: () => void;
 }) {
   const { t } = useLanguage();
 
@@ -30,8 +34,19 @@ export function Services({
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] pb-24 overflow-y-auto w-full">
-      <div className="pt-10 pb-4 flex justify-center items-center bg-white border-b border-slate-100 sticky top-0 z-10 shadow-sm">
-        <h1 className="font-medium text-slate-800">{t.services}</h1>
+      <div className="pt-10 pb-4 px-6 flex justify-between items-center bg-white border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+        <div className="w-10"></div>
+        <h1 className="font-medium text-slate-800 flex-1 text-center">{t.services}</h1>
+        <div className="w-10 flex justify-end">
+          <button onClick={onCartClick} className="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
+            <ShoppingCart size={22} className="text-slate-800" />
+            {cartItemCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 bg-[#f46036] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold ring-2 ring-white">
+                {cartItemCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="p-4 grid grid-cols-2 gap-4">

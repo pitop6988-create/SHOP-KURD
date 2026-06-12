@@ -25,7 +25,7 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
         if (snapshot.exists()) {
           setWalletBalance(snapshot.data().walletBalance || 0);
         }
-      });
+      }, (error) => console.error(error));
       return () => unsubscribeUser();
     }
   }, []);
@@ -37,7 +37,7 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
       if (snapshot.exists()) {
         setAppVersion(snapshot.data().version || '1.0.0');
       }
-    });
+    }, (error) => console.error(error));
     return () => unsubscribeConfig();
   }, []);
 

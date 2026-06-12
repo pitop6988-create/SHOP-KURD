@@ -1,6 +1,6 @@
 import { CartItem } from '../types';
 import { formatPrice } from '../data';
-import { Trash2, Plus, Minus, ShoppingCart, ChevronLeft, MoreVertical, MapPin, CheckCircle2 } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingCart, ChevronLeft, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 export function Cart({
@@ -20,26 +20,29 @@ export function Cart({
 }) {
   const { t } = useLanguage();
   const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const total = subtotal;
+  const shippingAndTax = subtotal > 0 ? 5000 : 0;
+  const total = subtotal + shippingAndTax;
+
+  const bgColors = ["bg-[#efdfdc]", "bg-[#e2e2cb]", "bg-[#ebdada]", "bg-[#dce9eb]"];
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col h-full bg-[#f9fafb] pb-24 w-full">
+      <div className="flex flex-col h-full bg-[#f5f4f7] pb-24 w-full absolute inset-0 z-20">
         <div className="pt-12 pb-4 px-6 flex items-center justify-between relative z-10">
-           <div className="flex items-center space-x-2 w-10">
+           <div className="flex items-center space-x-2 w-12">
               {onBack && (
-                <button onClick={onBack} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
-                  <ChevronLeft size={20} className="text-slate-800" />
+                <button onClick={onBack} className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm hover:bg-slate-50 transition-colors">
+                  <ChevronLeft size={24} className="text-slate-800" />
                 </button>
               )}
            </div>
-           <h1 className="font-medium text-slate-900 text-lg flex-1 text-center font-serif">{t.shoppingCart || 'Cart'}</h1>
-           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
-             <MoreVertical size={20} className="text-slate-800" />
+           <h1 className="font-semibold text-slate-900 text-xl flex-1 text-center font-sans tracking-tight">Cart</h1>
+           <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm hover:bg-slate-50 transition-colors">
+             <MoreHorizontal size={24} className="text-slate-800" />
            </div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
-          <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-2">
+          <div className="w-24 h-24 bg-white shadow-sm rounded-full flex items-center justify-center mb-2">
              <ShoppingCart size={40} className="text-slate-300" />
           </div>
           <h2 className="text-xl font-medium text-slate-800">{t.cartEmpty}</h2>
@@ -50,75 +53,88 @@ export function Cart({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#f9fafb] w-full relative">
-      <div className="pt-12 pb-4 px-6 flex items-center justify-between sticky top-0 z-10 bg-[#f9fafb]">
-         <div className="flex items-center space-x-2 w-10">
+    <div className="flex flex-col h-full bg-[#f5f4f7] w-full absolute inset-0 z-20">
+      <div className="pt-12 pb-4 px-6 flex items-center justify-between sticky top-0 z-10 bg-[#f5f4f7]">
+         <div className="flex items-center space-x-2 w-12">
             {onBack && (
-              <button onClick={onBack} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
-                <ChevronLeft size={20} className="text-slate-800" />
+              <button onClick={onBack} className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-slate-50 transition-colors">
+                <ChevronLeft size={24} className="text-slate-800" />
               </button>
             )}
          </div>
-         <h1 className="font-medium text-slate-900 text-lg flex-1 text-center">{t.shoppingCart || 'Cart'}</h1>
-         <button onClick={onClear} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors overflow-hidden relative group">
-           <MoreVertical size={20} className="text-slate-800 group-hover:opacity-0 transition-opacity" />
-           <Trash2 size={18} className="text-red-500 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+         <h1 className="font-semibold text-slate-900 text-[20px] flex-1 text-center font-sans tracking-tight">Cart</h1>
+         <button onClick={onClear} className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-slate-50 transition-colors overflow-hidden relative group">
+           <MoreHorizontal size={24} className="text-slate-800 group-hover:opacity-0 transition-opacity" />
+           <Trash2 size={20} className="text-red-500 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity" />
          </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto w-full">
-        <div className="px-6 space-y-6 pt-6">
-          {items.map(item => (
-            <div key={item.product.id} className="flex relative">
-               <div className="flex-1 flex items-center bg-white rounded-[1.5rem] pr-5 relative z-10">
-                 <div className="w-[120px] h-[120px] bg-slate-100 rounded-[1.5rem] flex-shrink-0 flex items-center justify-center p-3 relative shadow-inner">
-                   <img src={item.product.imageUrl} alt={item.product.name} className="object-contain w-full h-full mix-blend-multiply" />
+      <div className="flex-1 overflow-y-auto w-full px-5 mb-4">
+        <div className="bg-white rounded-[2rem] p-5 space-y-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mt-2">
+          {items.map((item, idx) => {
+             const backgroundColor = bgColors[idx % bgColors.length];
+             
+             return (
+              <div key={item.product.id} className="flex relative items-center">
+                 <div className={`w-[110px] h-[110px] ${backgroundColor} rounded-3xl flex-shrink-0 flex items-center justify-center p-3`}>
+                   <img src={item.product.imageUrl} alt={item.product.name} className="object-contain w-full h-full mix-blend-multiply drop-shadow-sm" />
                  </div>
                  
-                 <div className="flex-1 flex flex-col justify-center pl-5 py-4">
-                   <h3 className="font-medium text-slate-600 text-[15px] mb-3 leading-snug line-clamp-2">{item.product.name}</h3>
-                   
-                   <div className="flex items-center justify-between mt-auto">
-                     <div className="text-lg font-bold text-slate-900">
-                        {item.product.price.toLocaleString()} IQD
-                     </div>
+                 <div className="flex-1 pl-4 flex flex-col justify-center">
+                   <h3 className="font-semibold text-slate-800 text-[15px] leading-snug mb-1 pr-2 line-clamp-2">{item.product.name}</h3>
+                   <span className="text-[#619c9e] text-[13px] font-medium mb-1 line-clamp-1">{item.product.category || 'The Blue Buffalo'}</span>
+                   <div className="text-[15px] font-bold text-slate-800 mb-2">
+                      {item.product.price.toLocaleString()} IQD
+                   </div>
 
-                     <div className="flex items-center space-x-4 bg-slate-50 rounded-full px-2 py-1 shadow-sm border border-slate-100">
-                        <button 
-                          onClick={() => item.quantity > 1 ? onUpdateQuantity(item.product.id, item.quantity - 1) : onRemoveItem(item.product.id)}
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[#4ca14b]"
-                        >
-                          {item.quantity > 1 ? <Minus size={16} strokeWidth={3} /> : <Trash2 size={14} className="text-red-400" />}
-                        </button>
-                        <span className="w-3 text-center text-[15px] font-bold text-slate-800">{item.quantity}</span>
-                        <button 
-                          onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="w-7 h-7 rounded-full bg-[#4ca14b] flex items-center justify-center text-white shadow-sm"
-                        >
-                          <Plus size={16} strokeWidth={3} />
-                        </button>
-                     </div>
+                   <div className="flex items-center justify-between border border-slate-200 rounded-full w-[100px] h-9 p-0.5 mt-1">
+                      <button 
+                        onClick={() => item.quantity > 1 ? onUpdateQuantity(item.product.id, item.quantity - 1) : onRemoveItem(item.product.id)}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors"
+                      >
+                        {item.quantity > 1 ? <Minus size={16} strokeWidth={2.5} /> : <Trash2 size={14} className="text-red-400" />}
+                      </button>
+                      <span className="text-[14px] font-semibold text-slate-800">{item.quantity}</span>
+                      <button 
+                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                        className="w-8 h-8 rounded-full bg-[#f46036] flex items-center justify-center text-white shadow-sm hover:bg-[#e0542d] transition-colors"
+                      >
+                        <Plus size={16} strokeWidth={2.5} />
+                      </button>
                    </div>
                  </div>
-               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 px-6 pb-32">
-           <div className="flex justify-between items-center px-1">
-              <span className="text-[17px] font-bold text-slate-800">Total</span>
-              <span className="text-2xl font-bold text-slate-900">{total.toLocaleString()} IQD</span>
-           </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 w-full bg-white/80 backdrop-blur-md p-6 border-t border-slate-100 z-20 pb-8">
+      <div className="bg-white rounded-[2.5rem] pt-6 pb-6 px-7 shadow-[0_-5px_30px_rgba(0,0,0,0.04),0_10px_30px_rgba(0,0,0,0.04)] z-20 mx-4 mb-6">
+         <div className="space-y-3 mb-5">
+            <div className="flex justify-between items-center text-[15px]">
+               <span className="text-slate-500 font-medium tracking-wide">Sub total</span>
+               <span className="font-bold text-slate-800">{subtotal.toLocaleString()} IQD</span>
+            </div>
+            {shippingAndTax > 0 && (
+              <div className="flex justify-between items-center text-[15px]">
+                 <span className="text-slate-500 font-medium tracking-wide">Shipping & tax</span>
+                 <span className="font-bold text-slate-800">{shippingAndTax.toLocaleString()} IQD</span>
+              </div>
+            )}
+         </div>
+
+         <div className="border-t-[1.5px] border-slate-200 border-dashed mb-5"></div>
+
+         <div className="flex justify-between items-center mb-6">
+            <span className="text-[17px] font-bold text-slate-900 tracking-wide">Total</span>
+            <span className="text-[19px] font-bold text-slate-900">{total.toLocaleString()} IQD</span>
+         </div>
+
          <button 
            onClick={onCheckout}
-           className="w-full bg-[#1b8c38] text-white py-4 rounded-full flex items-center justify-center text-[16px] font-medium shadow-md hover:bg-[#15712c] transition-colors"
+           className="w-full bg-[#f46036] text-white py-[16px] rounded-full flex items-center justify-center text-[17px] font-bold shadow-[0_8px_20px_rgba(244,96,54,0.3)] hover:bg-[#e0542d] hover:shadow-[0_8px_20px_rgba(244,96,54,0.4)] transition-all active:scale-[0.98]"
          >
-            Checkout
+            Checkout Now
          </button>
       </div>
     </div>

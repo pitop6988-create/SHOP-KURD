@@ -17,6 +17,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { Product, CartItem, Order, PromoCode } from './types';
 import { products as initialProducts } from './data';
 import { auth } from './firebase';
+import { motion } from 'motion/react';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'loading'|'register'|'services'|'cart'|'orders'|'settings'|'checkout'|'order_success'|'admin'>('loading');
@@ -26,6 +27,7 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      
       const newKey = user ? `shopping_cart_${user.uid}` : 'guest_cart';
       setCurrentUserKey(newKey);
       
@@ -42,6 +44,7 @@ export default function App() {
         if (currentScreen === 'loading' || currentScreen === 'register') {
           setCurrentScreen('services');
         }
+        
       } else {
         const isGuest = localStorage.getItem('isGuest') === 'true';
         if (isGuest) {
@@ -55,7 +58,10 @@ export default function App() {
         }
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+    };
   }, [currentScreen]);
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -178,6 +184,8 @@ export default function App() {
                             products={products}
                             onProductClick={setSelectedProduct} 
                             onAddToCart={(p, q) => handleAddToCart(p, q)} 
+                            cartItemCount={cartItemCount}
+                            onCartClick={() => setCurrentScreen('cart')}
                           />
                         )}
                         {currentScreen === 'cart' && (
@@ -307,7 +315,7 @@ export default function App() {
                       </div>
                   )}
                 
-                {!(currentScreen === 'checkout' || currentScreen === 'order_success' || currentScreen === 'admin' || selectedProduct) && (
+                {!(currentScreen === 'cart' || currentScreen === 'checkout' || currentScreen === 'order_success' || currentScreen === 'admin' || selectedProduct) && (
                   <div className="shrink-0 z-50">
                     <BottomNav 
                       currentTab={currentScreen} 
