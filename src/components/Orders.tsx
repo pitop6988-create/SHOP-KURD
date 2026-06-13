@@ -1,14 +1,32 @@
-import { ChevronLeft, Check, X, Clock } from 'lucide-react';
+import { ChevronLeft, Check, X, Clock, Wallet, QrCode } from 'lucide-react';
 import { Order } from '../types';
 import { formatPrice } from '../data';
 import { useLanguage } from '../LanguageContext';
+import { useState, useEffect } from 'react';
+import { auth, db } from '../firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { QRCodeSVG } from 'qrcode.react';
 
 export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order[] }) {
   const { t } = useLanguage();
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [showQR, setShowQR] = useState(false);
+
+  useEffect(() => {
+    if (auth.currentUser) {
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      const unsubscribeUser = onSnapshot(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setWalletBalance(snapshot.data().walletBalance || 0);
+        }
+      }, (error) => console.error(error));
+      return () => unsubscribeUser();
+    }
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-slate-900 relative w-full items-center overflow-y-auto">
-      <div className="w-full pt-10 pb-4 px-4 flex items-center justify-between sticky top-0 bg-slate-900 z-10 shrink-0">
+      <div className="w-full pt-10 pb-4 px-4 flex items-center justify-between sticky top-0 bg-slate-900 z-10 shrink-0 border-b border-white/10">
         {onBack ? (
           <button onClick={onBack} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-full transition-colors">
             <ChevronLeft size={24} />
@@ -19,8 +37,23 @@ export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order
         <div className="flex flex-col items-center">
           <h1 className="font-medium text-white text-[15px]">{t.myOrderStatus}</h1>
         </div>
-        <div className="w-10"></div>
+        <button onClick={() => setShowQR(!showQR)} className="p-2 -mr-2 text-[#4ca14b] rounded-full transition-colors">
+          <QrCode size={24} />
+        </button>
       </div>
+
+      {showQR && auth.currentUser && (
+        <div className="w-full bg-slate-800 p-6 flex flex-col items-center border-b border-white/10">
+          <div className="bg-white p-4 rounded-xl mb-4 shadow-lg">
+            <QRCodeSVG value={auth.currentUser.uid} size={150} />
+          </div>
+          <div className="flex items-center space-x-2 text-[#4ca14b]">
+            <Wallet size={20} />
+            <span className="font-bold text-xl">{formatPrice(walletBalance, 'IQD')}</span>
+          </div>
+          <p className="text-white/60 text-sm mt-2 text-center">Show this QR code to the admin to pay or add money</p>
+        </div>
+      )}
 
       {!orders || orders.length === 0 ? (
          <div className="flex-1 flex items-center justify-center text-slate-400">

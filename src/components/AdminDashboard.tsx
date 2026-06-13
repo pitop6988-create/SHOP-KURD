@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin, Users, Settings as SettingsIcon } from 'lucide-react';
+import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin, Users, Settings as SettingsIcon, QrCode } from 'lucide-react';
 import { Product, Order, PromoCode, UserProfile } from '../types';
 import { formatPrice } from '../data';
 import { useLanguage } from '../LanguageContext';
 import { doc, setDoc, onSnapshot, collection, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 export function AdminDashboard({ 
   onBack, 
@@ -48,6 +49,7 @@ export function AdminDashboard({
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [addingCoinMode, setAddingCoinMode] = useState<string | null>(null);
   const [coinAmount, setCoinAmount] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
 
   // App Settings State
   const [appVersion, setAppVersion] = useState('');
@@ -145,9 +147,9 @@ export function AdminDashboard({
     setCoinAmount('');
   };
 
-  const handleSaveVersion = async () => {
+  const handleSaveSettings = async () => {
     await setDoc(doc(db, 'app_settings', 'general'), { version: appVersion }, { merge: true });
-    alert('Version updated');
+    alert('Settings updated');
   };
 
   return (
@@ -336,24 +338,28 @@ export function AdminDashboard({
 
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">{t.imageFile}</label>
-                    <input 
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setNewItemImage(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#4ca14b]/10 file:text-[#4ca14b] hover:file:bg-[#4ca14b]/20"
-                      required={!editingProduct}
-                    />
+                    <label className="flex items-center justify-center gap-2 w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors">
+                      <ImageIcon size={20} className="text-slate-500" />
+                      <span className="text-sm font-medium text-slate-600">Tap to upload image</span>
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setNewItemImage(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                        required={!editingProduct}
+                      />
+                    </label>
                     {newItemImage && (
-                       <div className="mt-3 w-16 h-16 rounded-lg overflow-hidden border border-slate-200">
+                       <div className="mt-3 w-16 h-16 rounded-lg overflow-hidden border border-slate-200 relative group">
                          <img src={newItemImage} alt="Preview" className="w-full h-full object-cover" />
                        </div>
                     )}
@@ -361,23 +367,27 @@ export function AdminDashboard({
 
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Image File 2 (Optional)</label>
-                    <input 
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setNewItemImage2(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#4ca14b]/10 file:text-[#4ca14b] hover:file:bg-[#4ca14b]/20"
-                    />
+                    <label className="flex items-center justify-center gap-2 w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors">
+                      <ImageIcon size={20} className="text-slate-500" />
+                      <span className="text-sm font-medium text-slate-600">Tap to upload image</span>
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setNewItemImage2(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
                     {newItemImage2 && (
-                       <div className="mt-3 w-16 h-16 rounded-lg overflow-hidden border border-slate-200">
+                       <div className="mt-3 w-16 h-16 rounded-lg overflow-hidden border border-slate-200 relative group">
                          <img src={newItemImage2} alt="Preview" className="w-full h-full object-cover" />
                        </div>
                     )}
@@ -452,6 +462,14 @@ export function AdminDashboard({
 
         {activeTab === 'users' && (
           <div className="p-4 space-y-4">
+             <button 
+               onClick={() => setShowScanner(true)}
+               className="w-full bg-[#4ca14b] text-white rounded-xl p-4 flex items-center justify-center font-bold shadow-sm mb-4"
+             >
+               <QrCode size={20} className="mr-2" />
+               Scan User QR Code
+             </button>
+
              {users.length === 0 ? (
                <div className="text-center text-slate-400 py-10">No users found</div>
              ) : (
@@ -468,7 +486,7 @@ export function AdminDashboard({
                          value={coinAmount}
                          onChange={e => setCoinAmount(e.target.value)}
                          className="w-24 border border-slate-200 rounded px-2 text-sm"
-                         placeholder="Amount"
+                         placeholder="Amount (+ or -)"
                        />
                        <button onClick={() => handleAddCoin(user.id)} className="bg-green-500 text-white rounded p-1">
                          <Check size={16} />
@@ -482,7 +500,7 @@ export function AdminDashboard({
                        onClick={() => { setAddingCoinMode(user.id); setCoinAmount(''); }}
                        className="shrink-0 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
                      >
-                       Add Coin
+                       Edit Balance
                      </button>
                    )}
                  </div>
@@ -494,23 +512,51 @@ export function AdminDashboard({
         {activeTab === 'settings' && (
           <div className="p-4 flex flex-col space-y-4">
              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-               <h2 className="font-medium text-slate-800 mb-4">App Version</h2>
-               <div className="space-y-4">
-                 <input 
-                   type="text" 
-                   value={appVersion}
-                   onChange={e => setAppVersion(e.target.value)}
-                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b]"
-                   placeholder="e.g. 1.5.0"
-                 />
-                 <button onClick={handleSaveVersion} className="w-full bg-[#4ca14b] text-white py-3 rounded-lg font-bold">
-                   Save Version
+               <h2 className="font-medium text-slate-800 mb-4">App Configuration</h2>
+               
+               <div className="space-y-5">
+                 <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-slate-700">App Version</label>
+                   <input 
+                     type="text" 
+                     value={appVersion}
+                     onChange={e => setAppVersion(e.target.value)}
+                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b]"
+                     placeholder="e.g. 1.5.0"
+                   />
+                 </div>
+
+                 <button onClick={handleSaveSettings} className="w-full bg-[#4ca14b] text-white py-3 rounded-lg font-bold shadow-sm mt-2">
+                   Save Settings
                  </button>
                </div>
              </div>
           </div>
         )}
       </div>
+
+      {showScanner && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col pt-10">
+          <div className="flex justify-between items-center p-4 text-white">
+            <h3 className="font-bold text-lg">Scan QR Code</h3>
+            <button onClick={() => setShowScanner(false)} className="p-2 bg-white/20 rounded-full">
+              <X size={24} />
+            </button>
+          </div>
+          <div className="flex-1 w-full bg-black overflow-hidden relative">
+            <Scanner 
+              onScan={(result) => {
+                if (result && result.length > 0) {
+                  const uid = result[0].rawValue;
+                  setShowScanner(false);
+                  setAddingCoinMode(uid);
+                  setCoinAmount('');
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
