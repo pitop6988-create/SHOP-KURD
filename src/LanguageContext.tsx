@@ -95,7 +95,9 @@ const translations = {
     paymentType: 'Payment Type',
     totalAmount: 'Total Amount',
     accept: 'Accept',
-    reject: 'Reject'
+    reject: 'Reject',
+    ok: 'OK',
+    delivered: 'Delivered'
   },
   kurdish: {
     home: 'Mal',
@@ -189,7 +191,9 @@ const translations = {
     paymentType: 'Cureyê Dravdanê',
     totalAmount: 'Heqê Giştî',
     accept: 'Qebûl Bike',
-    reject: 'Red Bike'
+    reject: 'Red Bike',
+    ok: 'Baş e',
+    delivered: 'Gehişt'
   },
   arabic: {
     home: 'الرئيسية',
@@ -283,7 +287,9 @@ const translations = {
     paymentType: 'طريقة الدفع',
     totalAmount: 'المبلغ الإجمالي',
     accept: 'قبول',
-    reject: 'رفض'
+    reject: 'رفض',
+    ok: 'موافق',
+    delivered: 'تم التوصيل'
   }
 };
 

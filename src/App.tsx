@@ -16,18 +16,25 @@ import { OrderSuccess } from './components/OrderSuccess';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Product, CartItem, Order, PromoCode } from './types';
 import { products as initialProducts } from './data';
-import { auth } from './firebase';
-import { motion } from 'motion/react';
+import { auth, handleFirestoreError, OperationType } from './firebase';
+import { motion, AnimatePresence } from 'motion/react';
+import { AlertTriangle, X } from 'lucide-react';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'loading'|'register'|'services'|'cart'|'orders'|'settings'|'checkout'|'order_success'|'admin'>('loading');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
 
   const [currentUserKey, setCurrentUserKey] = useState<string>('guest_cart');
 
   useEffect(() => {
+    const handleQuotaError = () => setIsQuotaExceeded(true);
+    window.addEventListener('firebase-quota-exceeded', handleQuotaError);
+    return () => window.removeEventListener('firebase-quota-exceeded', handleQuotaError);
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      
       const newKey = user ? `shopping_cart_${user.uid}` : 'guest_cart';
       setCurrentUserKey(newKey);
       
@@ -39,12 +46,11 @@ export default function App() {
           return [];
         }
       });
-      // ... original inner code ...
+
       if (user) {
         if (currentScreen === 'loading' || currentScreen === 'register') {
           setCurrentScreen('services');
         }
-        
       } else {
         const isGuest = localStorage.getItem('isGuest') === 'true';
         if (isGuest) {
@@ -79,14 +85,14 @@ export default function App() {
   useEffect(() => {
     import('./firebase').then(({ db }) => {
       import('firebase/firestore').then(({ collection, onSnapshot, setDoc, doc }) => {
-        // Products Sync
+        // Products Sync - Once on mount
         const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
           if (snapshot.empty) {
             initialProducts.forEach(async (p) => {
               try {
                 await setDoc(doc(db, 'products', p.id), p);
               } catch (e) {
-                console.error("Error setting initial product:", e);
+                handleFirestoreError(e, OperationType.WRITE, `products/${p.id}`);
               }
             });
           } else {
@@ -94,34 +100,56 @@ export default function App() {
             setProducts(prods);
           }
         }, (error) => {
-          console.error("Products snapshot error:", error);
+          handleFirestoreError(error, OperationType.GET, 'products');
         });
 
-        // Orders Sync
-        const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
-          const ords = snapshot.docs.map(doc => doc.data() as Order);
-          ords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setOrdersList(ords);
-        }, (error) => {
-          console.error("Orders snapshot error:", error);
-        });
-
-        // Promo Codes Sync
+        // Promo Codes Sync - Once on mount
         const unsubscribeCodes = onSnapshot(collection(db, 'promo_codes'), (snapshot) => {
           const codes = snapshot.docs.map(doc => doc.data() as PromoCode);
           setPromoCodes(codes);
         }, (error) => {
-          console.error("Promo codes snapshot error:", error);
+          handleFirestoreError(error, OperationType.GET, 'promo_codes');
         });
 
         return () => {
           unsubscribeProducts();
-          unsubscribeOrders();
           unsubscribeCodes();
         };
       });
     });
   }, []);
+
+  useEffect(() => {
+    let unsubscribeOrders: () => void = () => {};
+
+    import('./firebase').then(({ db }) => {
+      import('firebase/firestore').then(({ collection, onSnapshot, query, where }) => {
+        // Orders Sync - Depends on screen and user
+        if (currentScreen === 'admin') {
+          unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+            const ords = snapshot.docs.map(doc => doc.data() as Order);
+            ords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setOrdersList(ords);
+          }, (error) => {
+            handleFirestoreError(error, OperationType.GET, 'orders');
+          });
+        } else if (auth.currentUser?.email) {
+          const q = query(collection(db, 'orders'), where('customerName', '==', auth.currentUser.email));
+          unsubscribeOrders = onSnapshot(q, (snapshot) => {
+            const ords = snapshot.docs.map(doc => doc.data() as Order);
+            ords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setOrdersList(ords);
+          }, (error) => {
+            handleFirestoreError(error, OperationType.GET, 'orders');
+          });
+        }
+      });
+    });
+
+    return () => {
+      if (unsubscribeOrders) unsubscribeOrders();
+    };
+  }, [currentScreen, currentUserKey]);
 
   const handleAddToCart = (product: Product, quantity: number) => {
     setCart(prev => {
@@ -151,6 +179,32 @@ export default function App() {
   return (
     <div className="bg-neutral-900 min-h-screen flex items-center justify-center p-0 md:p-4 font-sans text-slate-900 selection:bg-[#4ca14b]/20">
       <div className="w-full max-w-md h-[100dvh] md:h-[850px] bg-white md:rounded-3xl shadow-2xl relative overflow-hidden flex flex-col ring-1 ring-white/10 md:ring-slate-900/5">
+        <AnimatePresence>
+          {isQuotaExceeded && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-amber-50 border-b border-amber-100 overflow-hidden shrink-0 z-[100]"
+            >
+              <div className="p-3 flex items-start space-x-3">
+                <div className="shrink-0 p-1 bg-amber-100 rounded-lg text-amber-600">
+                  <AlertTriangle size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-amber-900 leading-tight">Service Capacity Reached</p>
+                  <p className="text-[10px] text-amber-700 leading-tight mt-0.5">The app has hit its free-tier daily usage limit. Some features may not work until reset.</p>
+                </div>
+                <button 
+                  onClick={() => setIsQuotaExceeded(false)}
+                  className="p-1 text-amber-400 hover:text-amber-600 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
           {currentScreen === 'loading' && (
             <div className="flex-1 flex flex-col items-center justify-center h-full">
@@ -206,7 +260,14 @@ export default function App() {
                                 const newOrder: Order = {
                                   id: Math.random().toString(36).substring(2, 8).toUpperCase(),
                                   customerName: auth.currentUser?.email || 'Guest User',
-                                  items: [...cart],
+                                  items: cart.map(item => ({
+                                    ...item,
+                                    product: {
+                                      ...item.product,
+                                      imageUrl: '',
+                                      imageUrls: []
+                                    }
+                                  })),
                                   total: cartTotal,
                                   status: 'pending',
                                   date: new Date().toISOString()
@@ -216,8 +277,7 @@ export default function App() {
                                 await setDoc(doc(db, 'orders', newOrder.id), newOrder);
                                 setCurrentScreen('order_success');
                               } catch (e) {
-                                console.error('Error creating order', e);
-                                alert('Failed to checkout. Please try again.');
+                                handleFirestoreError(e, OperationType.WRITE, 'orders');
                               }
                             }}
                             total={cartTotal}
@@ -234,6 +294,7 @@ export default function App() {
                           <Orders 
                             onBack={() => setCurrentScreen('services')} 
                             orders={ordersList.filter(o => o.customerName === (auth.currentUser?.email || 'Guest User'))}
+                            products={products}
                           />
                         )}
                         {currentScreen === 'settings' && (
@@ -256,8 +317,7 @@ export default function App() {
                                 const { db } = await import('./firebase');
                                 await setDoc(doc(db, 'products', p.id), p);
                               } catch (e) {
-                                console.error('Error adding product', e);
-                                alert('Failed to add product: ' + (e as Error).message);
+                                handleFirestoreError(e, OperationType.WRITE, `products/${p.id}`);
                               }
                             }}
                             onUpdateProduct={async (p) => {
@@ -266,8 +326,7 @@ export default function App() {
                                 const { db } = await import('./firebase');
                                 await updateDoc(doc(db, 'products', p.id), p as any);
                               } catch (e) {
-                                console.error('Error updating product', e);
-                                alert('Failed to update: ' + (e as Error).message);
+                                handleFirestoreError(e, OperationType.UPDATE, `products/${p.id}`);
                               }
                             }}
                             onDeleteProduct={async (id) => {
@@ -276,19 +335,30 @@ export default function App() {
                                 const { db } = await import('./firebase');
                                 await deleteDoc(doc(db, 'products', id));
                               } catch (e) {
-                                console.error('Error deleting product', e);
-                                alert('Failed to delete: ' + (e as Error).message);
+                                handleFirestoreError(e, OperationType.DELETE, `products/${id}`);
                               }
                             }}
                             orders={ordersList}
                             onUpdateOrderStatus={async (id, status) => {
                               try {
-                                const { doc, updateDoc } = await import('firebase/firestore');
+                                const { doc, updateDoc, collection, query, where, getDocs } = await import('firebase/firestore');
                                 const { db } = await import('./firebase');
+                                const order = ordersList.find(o => o.id === id);
+                                
                                 await updateDoc(doc(db, 'orders', id), { status });
+                                
+                                if (order && status === 'confirmed' && order.status !== 'confirmed') {
+                                  const q = query(collection(db, 'users'), where('email', '==', order.customerName));
+                                  const userDocs = await getDocs(q);
+                                  if (!userDocs.empty) {
+                                    const userDoc = userDocs.docs[0];
+                                    const userData = userDoc.data();
+                                    const newBalance = (userData.walletBalance || 0) - order.total;
+                                    await updateDoc(doc(db, 'users', userDoc.id), { walletBalance: newBalance });
+                                  }
+                                }
                               } catch (e) {
-                                console.error('Error updating order status', e);
-                                alert('Failed to update order: ' + (e as Error).message);
+                                handleFirestoreError(e, OperationType.UPDATE, `orders/${id}`);
                               }
                             }}
                             codes={promoCodes}
@@ -298,7 +368,7 @@ export default function App() {
                                 const { db } = await import('./firebase');
                                 await setDoc(doc(db, 'promo_codes', code.id), code);
                               } catch (e) {
-                                console.error('Error adding code', e);
+                                handleFirestoreError(e, OperationType.WRITE, `promo_codes/${code.id}`);
                               }
                             }}
                             onDeleteCode={async (id) => {
@@ -307,7 +377,7 @@ export default function App() {
                                 const { db } = await import('./firebase');
                                 await deleteDoc(doc(db, 'promo_codes', id));
                               } catch (e) {
-                                console.error('Error deleting code', e);
+                                handleFirestoreError(e, OperationType.DELETE, `promo_codes/${id}`);
                               }
                             }}
                           />

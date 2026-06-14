@@ -5,6 +5,7 @@ export interface Product {
   currency: string;
   imageUrl: string;
   imageUrls?: string[];
+  category?: string;
 }
 
 export interface UserProfile {

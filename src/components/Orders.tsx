@@ -1,16 +1,19 @@
-import { ChevronLeft, Check, X, Clock, Wallet, QrCode } from 'lucide-react';
-import { Order } from '../types';
+import { ChevronLeft, Check, X, Clock, Wallet, QrCode, Camera } from 'lucide-react';
+import { Order, Product } from '../types';
 import { formatPrice } from '../data';
 import { useLanguage } from '../LanguageContext';
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { QRCodeSVG } from 'qrcode.react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
-export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order[] }) {
+export function Orders({ onBack, orders, products = [] }: { onBack?: () => void; orders?: Order[], products?: Product[] }) {
   const { t } = useLanguage();
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [showQR, setShowQR] = useState(false);
+  const [selectedOrderQR, setSelectedOrderQR] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     if (auth.currentUser) {
@@ -37,9 +40,11 @@ export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order
         <div className="flex flex-col items-center">
           <h1 className="font-medium text-white text-[15px]">{t.myOrderStatus}</h1>
         </div>
-        <button onClick={() => setShowQR(!showQR)} className="p-2 -mr-2 text-[#4ca14b] rounded-full transition-colors">
-          <QrCode size={24} />
-        </button>
+        <div className="flex items-center space-x-1">
+          <button onClick={() => setShowQR(!showQR)} className="p-2 -mr-2 text-[#4ca14b] rounded-full transition-colors">
+            <QrCode size={24} />
+          </button>
+        </div>
       </div>
 
       {showQR && auth.currentUser && (
@@ -69,6 +74,12 @@ export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order
                   <p className="text-white/60 text-sm mt-0.5">{new Date(order.date).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</p>
                 </div>
                 <div className="flex items-center space-x-2 shrink-0 ml-4">
+                  <button 
+                    onClick={() => setSelectedOrderQR(order.id)}
+                    className="p-1.5 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors mr-1"
+                  >
+                    <QrCode size={16} />
+                  </button>
                   <span className="text-sm font-medium text-white/80 mr-1 capitalize">
                     {order.status === 'confirmed' ? t.accepted : order.status === 'cancelled' ? t.rejected : t.pending}
                   </span>
@@ -89,17 +100,22 @@ export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order
               </div>
 
               <div className="space-y-3 opacity-90 text-white mb-4">
-                {order.items.map(item => (
-                  <div key={item.product.id} className="flex items-center justify-between text-sm bg-white/5 rounded-lg p-2 border border-white/5">
-                    <div className="flex items-center flex-1">
-                      <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center p-1 mr-3 shrink-0 overflow-hidden">
-                        <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-contain mix-blend-multiply" />
+                {order.items.map(item => {
+                  const liveProduct = products.find(p => p.id === item.product.id) || item.product;
+                  return (
+                    <div key={item.product.id} className="flex items-center justify-between text-sm bg-white/5 rounded-lg p-2 border border-white/5">
+                      <div className="flex items-center flex-1">
+                        {liveProduct.imageUrl && (
+                          <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center p-1 mr-3 shrink-0 overflow-hidden">
+                            <img src={liveProduct.imageUrl} alt={item.product.name} className="w-full h-full object-contain mix-blend-multiply" />
+                          </div>
+                        )}
+                        <span className="font-medium pr-2 leading-tight">{item.quantity}x {item.product.name}</span>
                       </div>
-                      <span className="font-medium pr-2 leading-tight">{item.quantity}x {item.product.name}</span>
+                      <span className="font-medium shrink-0">{formatPrice(item.product.price * item.quantity, item.product.currency)}</span>
                     </div>
-                    <span className="font-medium shrink-0">{formatPrice(item.product.price * item.quantity, item.product.currency)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="flex justify-between items-center border-t border-white/20 pt-3 text-white">
@@ -108,6 +124,30 @@ export function Orders({ onBack, orders }: { onBack?: () => void; orders?: Order
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {selectedOrderQR && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm flex flex-col items-center border border-white/20 shadow-2xl">
+            <div className="w-full flex justify-end mb-2">
+              <button onClick={() => setSelectedOrderQR(null)} className="p-2 text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <h3 className="font-bold text-slate-900 text-xl mb-6">{t.orderNow || 'Order'} QR</h3>
+            <div className="bg-white p-4 rounded-3xl border-4 border-slate-50 shadow-inner">
+              <QRCodeSVG value={selectedOrderQR} size={200} />
+            </div>
+            <p className="mt-6 font-mono text-slate-500 bg-slate-50 px-4 py-2 rounded-full text-sm tracking-widest text-center">
+              {selectedOrderQR.toUpperCase()}
+            </p>
+            <button 
+              onClick={() => setSelectedOrderQR(null)}
+              className="mt-8 w-full bg-[#4ca14b] text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-200"
+            >
+              DONE
+            </button>
+          </div>
         </div>
       )}
     </div>

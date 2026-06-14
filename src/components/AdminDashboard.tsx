@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin, Users, Settings as SettingsIcon, QrCode } from 'lucide-react';
+import { ChevronLeft, Plus, Image as ImageIcon, Package, Check, X, Clock, Navigation, Edit2, Trash2, Plane, MapPin, Users, Settings as SettingsIcon, QrCode, Camera } from 'lucide-react';
 import { Product, Order, PromoCode, UserProfile } from '../types';
 import { formatPrice } from '../data';
 import { useLanguage } from '../LanguageContext';
 import { doc, setDoc, onSnapshot, collection, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { QRCodeSVG } from 'qrcode.react';
 
 export function AdminDashboard({ 
   onBack, 
@@ -49,22 +50,28 @@ export function AdminDashboard({
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [addingCoinMode, setAddingCoinMode] = useState<string | null>(null);
   const [coinAmount, setCoinAmount] = useState('');
-  const [showScanner, setShowScanner] = useState(false);
 
   // App Settings State
   const [appVersion, setAppVersion] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  
+  const [showUserScanner, setShowUserScanner] = useState(false);
+  const [showOrderScanner, setShowOrderScanner] = useState(false);
+  const [showOrderQR, setShowOrderQR] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       setUsers(snapshot.docs.map(d => d.data() as UserProfile));
-    }, (error) => console.error(error));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'users'));
     const unsubConfig = onSnapshot(doc(db, 'app_settings', 'general'), (snapshot) => {
       if (snapshot.exists()) {
         setAppVersion(snapshot.data().version || '1.0.0');
+        setAdminPassword(snapshot.data().adminPassword !== undefined ? snapshot.data().adminPassword : 'EMAD8912');
       } else {
         setAppVersion('1.0.0');
+        setAdminPassword('EMAD8912');
       }
-    }, (error) => console.error(error));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'app_settings/general'));
     return () => { unsubUsers(); unsubConfig(); };
   }, []);
 
@@ -148,7 +155,7 @@ export function AdminDashboard({
   };
 
   const handleSaveSettings = async () => {
-    await setDoc(doc(db, 'app_settings', 'general'), { version: appVersion }, { merge: true });
+    await setDoc(doc(db, 'app_settings', 'general'), { version: appVersion, adminPassword }, { merge: true });
     alert('Settings updated');
   };
 
@@ -197,6 +204,16 @@ export function AdminDashboard({
       <div className="flex-1 overflow-y-auto w-full relative">
         {activeTab === 'orders' && (
           <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-bold text-slate-800 text-base ml-1">{t.orders}</h2>
+              <button 
+                onClick={() => setShowOrderScanner(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-[#4ca14b] text-white rounded-[1.2rem] shadow-md shadow-green-100 hover:bg-[#3f8a3e] transition-all active:scale-95"
+              >
+                <Camera size={18} />
+                <span className="text-sm font-bold">SCAN QR</span>
+              </button>
+            </div>
             {orders.length === 0 ? (
               <div className="text-center text-slate-400 py-10">{t.noOrders}</div>
             ) : (
@@ -204,7 +221,15 @@ export function AdminDashboard({
                 <div key={order.id} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-bold text-slate-900 text-lg">{t.orderHash} {order.id.toUpperCase()}</h3>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-bold text-slate-900 text-lg">{t.orderHash} {order.id.toUpperCase()}</h3>
+                        <button 
+                          onClick={() => setShowOrderQR(order.id)}
+                          className="p-1.5 bg-slate-100 rounded-lg text-slate-600 hover:bg-slate-200 transition-colors"
+                        >
+                          <QrCode size={16} />
+                        </button>
+                      </div>
                       <p className="text-sm font-medium text-[#4ca14b] mt-0.5">{order.customerName}</p>
                     </div>
                     <span className="text-sm font-medium text-slate-400 shrink-0 ml-4 text-right">
@@ -231,30 +256,36 @@ export function AdminDashboard({
                   </div>
 
                   <div className="flex space-x-2 pt-3">
-                    <button 
-                      onClick={() => onUpdateOrderStatus(order.id, 'confirmed')}
-                      disabled={order.status !== 'pending'}
-                      className={`flex-1 py-1.5 rounded-full text-sm font-bold transition-colors ${
-                        order.status === 'pending' 
-                          ? 'bg-[#3fb858] hover:bg-[#32a84a] text-white shadow-sm' 
-                          : 'bg-slate-100 text-slate-400'
-                      }`}
-                    >
-                      {order.status === 'confirmed' || order.status === 'delivered' ? t.accepted : t.accept}
-                    </button>
-                    <button 
-                      onClick={() => onUpdateOrderStatus(order.id, 'cancelled')}
-                      disabled={order.status !== 'pending'}
-                      className={`flex-1 py-1.5 rounded-full text-sm font-bold transition-colors ${
-                        order.status === 'pending'
-                          ? 'bg-[#ed6a5e] hover:bg-[#dc5448] text-white shadow-sm'
-                          : order.status === 'cancelled'
-                            ? 'bg-red-100 text-red-500'
-                            : 'bg-slate-100 text-slate-400'
-                      }`}
-                    >
-                      {order.status === 'cancelled' ? t.rejected : t.reject}
-                    </button>
+                    {order.status === 'pending' ? (
+                      <>
+                        <button 
+                          onClick={() => onUpdateOrderStatus(order.id, 'confirmed')}
+                          className="flex-1 py-1.5 rounded-full text-sm font-bold bg-[#3fb858] hover:bg-[#32a84a] text-white shadow-sm transition-colors"
+                        >
+                          {t.accept}
+                        </button>
+                        <button 
+                          onClick={() => onUpdateOrderStatus(order.id, 'cancelled')}
+                          className="flex-1 py-1.5 rounded-full text-sm font-bold bg-[#ed6a5e] hover:bg-[#dc5448] text-white shadow-sm transition-colors"
+                        >
+                          {t.reject}
+                        </button>
+                      </>
+                    ) : order.status === 'confirmed' ? (
+                      <button 
+                        onClick={() => onUpdateOrderStatus(order.id, 'delivered')}
+                        className="w-full py-1.5 rounded-full text-sm font-bold bg-[#4ca14b] hover:bg-[#3f8a3e] text-white shadow-sm transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <Check size={18} />
+                        <span>{t.ok}</span>
+                      </button>
+                    ) : (
+                      <div className={`w-full py-1.5 rounded-full text-sm font-bold text-center ${
+                        order.status === 'delivered' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                      }`}>
+                        {order.status === 'delivered' ? t.delivered : t.rejected}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -463,7 +494,7 @@ export function AdminDashboard({
         {activeTab === 'users' && (
           <div className="p-4 space-y-4">
              <button 
-               onClick={() => setShowScanner(true)}
+               onClick={() => setShowUserScanner(true)}
                className="w-full bg-[#4ca14b] text-white rounded-xl p-4 flex items-center justify-center font-bold shadow-sm mb-4"
              >
                <QrCode size={20} className="mr-2" />
@@ -526,6 +557,17 @@ export function AdminDashboard({
                    />
                  </div>
 
+                 <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-slate-700">Admin Password</label>
+                   <input 
+                     type="text" 
+                     value={adminPassword}
+                     onChange={e => setAdminPassword(e.target.value)}
+                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4ca14b]/20 focus:border-[#4ca14b]"
+                     placeholder="Admin Password"
+                   />
+                 </div>
+
                  <button onClick={handleSaveSettings} className="w-full bg-[#4ca14b] text-white py-3 rounded-lg font-bold shadow-sm mt-2">
                    Save Settings
                  </button>
@@ -535,11 +577,11 @@ export function AdminDashboard({
         )}
       </div>
 
-      {showScanner && (
+      {showUserScanner && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col pt-10">
           <div className="flex justify-between items-center p-4 text-white">
-            <h3 className="font-bold text-lg">Scan QR Code</h3>
-            <button onClick={() => setShowScanner(false)} className="p-2 bg-white/20 rounded-full">
+            <h3 className="font-bold text-lg">Scan User Wallet QR</h3>
+            <button onClick={() => setShowUserScanner(false)} className="p-2 bg-white/20 rounded-full">
               <X size={24} />
             </button>
           </div>
@@ -548,12 +590,91 @@ export function AdminDashboard({
               onScan={(result) => {
                 if (result && result.length > 0) {
                   const uid = result[0].rawValue;
-                  setShowScanner(false);
+                  setShowUserScanner(false);
                   setAddingCoinMode(uid);
                   setCoinAmount('');
                 }
               }}
+              onError={(err) => {
+                console.error(err);
+                setShowUserScanner(false);
+              }}
             />
+          </div>
+        </div>
+      )}
+
+      {showOrderQR && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm flex flex-col items-center">
+            <div className="w-full flex justify-end mb-2">
+              <button onClick={() => setShowOrderQR(null)} className="p-2 text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <h3 className="font-bold text-slate-900 text-xl mb-6">{t.orderNow} QR</h3>
+            <div className="bg-white p-4 rounded-3xl border-4 border-slate-50 shadow-inner">
+              <QRCodeSVG value={showOrderQR} size={200} />
+            </div>
+            <p className="mt-6 font-mono text-slate-500 bg-slate-50 px-4 py-2 rounded-full text-sm tracking-widest">
+              {showOrderQR.toUpperCase()}
+            </p>
+            <button 
+              onClick={() => setShowOrderQR(null)}
+              className="mt-8 w-full bg-[#4ca14b] text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-200"
+            >
+              DONE
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showOrderScanner && (
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+          <div className="relative flex-1">
+            <Scanner 
+              onScan={async (result) => {
+                if (result && result.length > 0) {
+                  const scannedId = result[0]?.rawValue;
+                  if (scannedId) {
+                    try {
+                      await onUpdateOrderStatus(scannedId, 'delivered');
+                      setShowOrderScanner(false);
+                      alert('Order confirmed and marked as Delivered!');
+                    } catch (e: any) {
+                      console.error('Scan error:', e);
+                      alert('Failed to update order: ' + (e.message || 'Invalid QR code'));
+                    }
+                  }
+                }
+              }}
+              onError={(error) => {
+                console.error('Scanner error:', error);
+                alert('Scanner failed to start');
+                setShowOrderScanner(false);
+              }}
+              styles={{
+                container: { width: '100%', height: '100%' }
+              }}
+            />
+            <button 
+              onClick={() => setShowOrderScanner(false)}
+              className="absolute top-10 right-6 p-3 bg-white/20 rounded-full text-white z-50"
+            >
+              <X size={24} />
+            </button>
+            <div className="absolute inset-0 border-[40px] border-black/40 pointer-events-none">
+              <div className="w-full h-full border-2 border-[#4ca14b] rounded-3xl" />
+            </div>
+          </div>
+          <div className="bg-slate-900 p-8 flex flex-col items-center">
+             <p className="text-white/60 text-center mb-6">Scan user's Order QR code to verify and mark as Delivered</p>
+             <button 
+               onClick={() => setShowOrderScanner(false)}
+               className="w-full max-w-xs bg-white/10 text-white font-bold py-4 rounded-2xl"
+             >
+               CANCEL
+             </button>
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store, ShoppingCart, ShoppingBag, Settings as SettingsIcon } from 'lucide-react';
+import { Home, ShoppingBag, User } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 interface BottomNavProps {
@@ -11,39 +11,41 @@ interface BottomNavProps {
 export function BottomNav({ currentTab, onTabChange, cartItemCount }: BottomNavProps) {
   const { t } = useLanguage();
   return (
-    <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-2 pb-6 px-2 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-      <NavItem 
-        icon={<Store size={22} className={currentTab === 'services' ? 'fill-current' : ''} />} 
-        label={t.services} 
-        isActive={currentTab === 'services'} 
-        onClick={() => onTabChange('services')} 
-      />
-      <NavItem 
-        icon={<ShoppingBag size={22} className={currentTab === 'orders' ? 'fill-current' : ''} />} 
-        label={t.orders} 
-        isActive={currentTab === 'orders'} 
-        onClick={() => onTabChange('orders')} 
-      />
-      <NavItem 
-        icon={<SettingsIcon size={22} className={currentTab === 'settings' ? 'fill-current' : ''} />} 
-        label={t.settings} 
-        isActive={currentTab === 'settings'} 
-        onClick={() => onTabChange('settings')} 
-      />
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-max max-w-[95%] bg-white rounded-[2.5rem] p-2 z-30 shadow-[0_20px_40px_rgba(0,0,0,0.12)] border border-slate-100">
+       <div className="bg-[#f0f2f5] rounded-[2rem] flex items-center justify-between px-2 py-1.5 shadow-inner space-x-1 sm:space-x-2">
+          <NavItem 
+            icon={Home} 
+            label={t.services || 'Home'} 
+            isActive={currentTab === 'services'} 
+            onClick={() => onTabChange('services')} 
+          />
+          <NavItem 
+            icon={ShoppingBag} 
+            label={t.orders || 'Orders'} 
+            isActive={currentTab === 'orders'} 
+            onClick={() => onTabChange('orders')} 
+          />
+          <NavItem 
+            icon={User} 
+            label={t.settings || 'Account'} 
+            isActive={currentTab === 'settings'} 
+            onClick={() => onTabChange('settings')} 
+          />
+       </div>
     </div>
   );
 }
 
-function NavItem({ icon, label, isActive, onClick }: { icon: React.ReactNode; label: string; isActive: boolean; onClick: () => void }) {
+function NavItem({ icon: Icon, label, isActive, onClick }: { icon: any; label: string; isActive: boolean; onClick: () => void }) {
   return (
     <button 
       onClick={onClick}
-      className={`flex flex-col items-center justify-center w-full space-y-1 pt-2 pb-1 transition-colors ${isActive ? 'text-[#4ca14b]' : 'text-slate-400 hover:text-slate-600'}`}
+      className={`flex flex-col items-center justify-center transition-all duration-300 rounded-[1.8rem] w-[70px] sm:w-[84px] h-[60px] ${isActive ? 'bg-[#222222] text-white shadow-md' : 'text-slate-500 hover:text-slate-800 bg-transparent'}`}
     >
-      <div className={isActive ? 'text-[#4ca14b]' : ''}>
-        {icon}
+      <div className={`mb-1 transition-transform duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
+        <Icon size={20} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'fill-current text-white mix-blend-screen' : ''} />
       </div>
-      <span className="text-[10px] font-medium tracking-wide">{label}</span>
+      <span className={`text-[11px] sm:text-[12px] tracking-wide ${isActive ? 'font-medium' : 'font-normal'}`}>{label}</span>
     </button>
   );
 }

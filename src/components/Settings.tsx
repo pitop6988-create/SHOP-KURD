@@ -13,6 +13,7 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
   const [adminPassword, setAdminPassword] = useState('');
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [appVersion, setAppVersion] = useState<string>('1.0.0');
+  const [actualAdminPassword, setActualAdminPassword] = useState('EMAD8912');
   const [themeMode, setThemeMode] = useState<'light'|'dark'>('light');
   
   const { language, setLanguage, t } = useLanguage();
@@ -31,11 +32,12 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
   }, []);
 
   useEffect(() => {
-    // Fetch App Version
+    // Fetch App Version and Settings
     const configRef = doc(db, 'app_settings', 'general');
     const unsubscribeConfig = onSnapshot(configRef, (snapshot) => {
       if (snapshot.exists()) {
         setAppVersion(snapshot.data().version || '1.0.0');
+        setActualAdminPassword(snapshot.data().adminPassword !== undefined ? snapshot.data().adminPassword : 'EMAD8912');
       }
     }, (error) => console.error(error));
     return () => unsubscribeConfig();
@@ -43,7 +45,7 @@ export function Settings({ onNavigateToAdmin, onLogout }: { onNavigateToAdmin?: 
 
   const handleAdminVerify = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPassword === 'EMAD8912') {
+    if (adminPassword === actualAdminPassword || (actualAdminPassword === '' && adminPassword === '')) {
       setShowAdminLogin(false);
       setAdminPassword('');
       if (onNavigateToAdmin) onNavigateToAdmin();

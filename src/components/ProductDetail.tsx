@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { ChevronLeft, MoreVertical, Minus, Plus } from 'lucide-react';
+import { ChevronLeft, MoreVertical, Minus, Plus, Maximize, X } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 export function ProductDetail({
@@ -15,10 +15,71 @@ export function ProductDetail({
   const [quantity, setQuantity] = useState(1);
   const { t } = useLanguage();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const fullScreenScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isFullScreen && fullScreenScrollRef.current) {
+        fullScreenScrollRef.current.scrollTo({
+           left: fullScreenScrollRef.current.clientWidth * currentImageIndex,
+           behavior: 'instant'
+        });
+    }
+  }, [isFullScreen]);
 
   const allImages = product.imageUrls && product.imageUrls.length > 0 
       ? [product.imageUrl, ...product.imageUrls.filter(url => url !== product.imageUrl)] 
       : [product.imageUrl];
+
+  if (isFullScreen) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <button onClick={() => setIsFullScreen(false)} className="absolute top-6 right-6 p-2 text-white bg-white/20 rounded-full hover:bg-white/30 transition z-50">
+          <X size={28} />
+        </button>
+        <div 
+          ref={fullScreenScrollRef}
+          className="flex-1 w-full flex overflow-x-auto snap-x snap-mandatory hide-scrollbar"
+          onScroll={(e) => {
+            const container = e.currentTarget;
+            const scrollLeft = container.scrollLeft;
+            const width = container.clientWidth;
+            const newIndex = Math.round(scrollLeft / width);
+            if (newIndex !== currentImageIndex) {
+              setCurrentImageIndex(newIndex);
+            }
+          }}
+        >
+          {allImages.map((img, idx) => (
+            <div key={idx} className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center p-4">
+              <img 
+                src={img} 
+                alt={`${product.name} ${idx + 1}`} 
+                className="w-full h-full object-contain"
+              />
+            </div>
+          ))}
+        </div>
+        <div className="absolute bottom-10 left-0 right-0 flex justify-center space-x-3">
+          {allImages.length > 1 && allImages.map((_, idx) => (
+            <button 
+              key={idx}
+              onClick={() => {
+                setCurrentImageIndex(idx);
+                if (fullScreenScrollRef.current) {
+                  fullScreenScrollRef.current.scrollTo({
+                    left: fullScreenScrollRef.current.clientWidth * idx,
+                    behavior: 'smooth'
+                  });
+                }
+              }}
+              className={`w-3 h-3 rounded-full transition-colors ${currentImageIndex === idx ? 'bg-white' : 'bg-white/40'}`}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-white w-full absolute inset-0 z-20 overflow-hidden">
@@ -39,16 +100,23 @@ export function ProductDetail({
       </div>
 
       <div className="flex-1 flex flex-col overflow-y-auto px-5 pb-32">
-        <div className="w-full bg-[#f0eff4] rounded-[2.5rem] relative mt-2 pt-8 pb-16 flex flex-col items-center">
+        <div className="w-full bg-[#f0eff4] rounded-[2.5rem] relative mt-2 pt-8 pb-12 flex flex-col items-center">
            <div className="absolute top-4 right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm z-10">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
            </div>
            
-           <div className="w-full h-[260px] relative px-4 flex items-center justify-center">
+           <div className="w-full h-[320px] sm:h-[380px] relative px-2 flex items-center justify-center">
+              <button 
+                onClick={() => setIsFullScreen(true)}
+                className="absolute top-4 left-4 p-2 bg-white/60 backdrop-blur-sm rounded-full z-10 hover:bg-white/90 transition shadow-sm"
+              >
+                <Maximize size={20} className="text-slate-800" />
+              </button>
               <img 
                 src={allImages[currentImageIndex]} 
                 alt={product.name} 
-                className="w-[90%] h-full object-contain mix-blend-multiply drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)] scale-[1.1] translate-y-2 z-0" 
+                onClick={() => setIsFullScreen(true)}
+                className="w-full h-full object-contain mix-blend-multiply drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)] scale-[1.05] z-0 cursor-pointer" 
               />
            </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { ChevronLeft } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
@@ -15,8 +15,8 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
   const { language, setLanguage, t } = useLanguage();
 
   const ensureUserProfile = async (user: any) => {
+    const userRef = doc(db, 'users', user.uid);
     try {
-      const userRef = doc(db, 'users', user.uid);
       const docSnap = await getDoc(userRef);
       if (!docSnap.exists()) {
         await setDoc(userRef, {
@@ -26,7 +26,7 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
         });
       }
     } catch (error) {
-      console.error("Error creating user profile:", error);
+      handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
     }
   };
 
@@ -47,7 +47,7 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
     } catch (error: any) {
       console.error("Auth error:", error);
       if (error.code === 'auth/invalid-credential') {
-        alert(t.invalidCredentials || "Invalid email or password. Please check your credentials or register if you don't have an account.");
+        alert(t.invalidCredentials || "Incorrect email or password. If you don't have an account, please Sign Up instead.");
       } else if (error.code === 'auth/email-already-in-use') {
         try {
           const cred = await signInWithEmailAndPassword(auth, email, password);
@@ -78,9 +78,11 @@ export function Register({ onComplete, onGuest }: { onComplete: () => void; onGu
       const cred = await signInWithPopup(auth, provider);
       await ensureUserProfile(cred.user);
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing in with Google:", error);
-      alert(t.signInFailed || "Failed to sign in. Please try again.");
+      if (error.code !== 'auth/popup-closed-by-user') {
+        alert(t.signInFailed || "Failed to sign in with Google. Please try again or use email login.");
+      }
     } finally {
       setIsLoading(false);
     }
